@@ -2,6 +2,7 @@
 
 import typer
 
+from .commands import run as run_cmd
 from .commands import scenario as scenario_cmd
 from .commands import serve as serve_cmd
 
@@ -12,6 +13,7 @@ app = typer.Typer(
     rich_markup_mode="rich",
 )
 
+app.add_typer(run_cmd.app, name="run", help="Execute a security scan against an agent")
 app.add_typer(scenario_cmd.app, name="scenario", help="Manage and validate attack scenarios")
 app.add_typer(serve_cmd.app, name="serve", help="Start the sandbox server for manual debugging")
 
