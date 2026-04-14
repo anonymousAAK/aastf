@@ -3,6 +3,7 @@
 import typer
 
 from .commands import scenario as scenario_cmd
+from .commands import serve as serve_cmd
 
 app = typer.Typer(
     name="aastf",
@@ -12,6 +13,7 @@ app = typer.Typer(
 )
 
 app.add_typer(scenario_cmd.app, name="scenario", help="Manage and validate attack scenarios")
+app.add_typer(serve_cmd.app, name="serve", help="Start the sandbox server for manual debugging")
 
 
 @app.callback(invoke_without_command=True)
