@@ -1,0 +1,4 @@
+# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\models\trace.py
+# hypothesis_version: 6.151.14
+
+[1000, 'agent_action', 'agent_finish', 'chain_end', 'chain_start', 'delegation', 'llm_end', 'llm_start', 'memory_read', 'memory_write', 'tool_end', 'tool_error', 'tool_start']

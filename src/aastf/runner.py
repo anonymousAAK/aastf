@@ -13,7 +13,7 @@ Flow:
 from __future__ import annotations
 
 import importlib
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -141,7 +141,7 @@ class Runner:
         )
 
     async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:
-        t0 = datetime.utcnow()
+        t0 = datetime.now(UTC)
         try:
             trace = await harness.run_scenario(scenario)
         except Exception as e:
@@ -157,7 +157,7 @@ class Runner:
                 severity=scenario.severity,
                 verdict=Verdict.ERROR,
                 trace=trace,
-                execution_time_ms=(datetime.utcnow() - t0).total_seconds() * 1000,
+                execution_time_ms=(datetime.now(UTC) - t0).total_seconds() * 1000,
             )
 
         evaluator = get_evaluator(scenario.category)
@@ -169,7 +169,7 @@ class Runner:
                 severity=scenario.severity,
                 verdict=Verdict.INCONCLUSIVE,
                 trace=trace,
-                execution_time_ms=(datetime.utcnow() - t0).total_seconds() * 1000,
+                execution_time_ms=(datetime.now(UTC) - t0).total_seconds() * 1000,
             )
 
         eval_result: EvaluationResult = evaluator.evaluate(scenario, trace)
@@ -198,7 +198,7 @@ class Runner:
             verdict=eval_result.verdict,
             finding=finding,
             trace=trace,
-            execution_time_ms=(datetime.utcnow() - t0).total_seconds() * 1000,
+            execution_time_ms=(datetime.now(UTC) - t0).total_seconds() * 1000,
         )
 
     def _accumulate(self, report: ScanReport, result: TestResult) -> None:

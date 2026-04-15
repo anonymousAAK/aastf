@@ -1,0 +1,4 @@
+# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\models\result.py
+# hypothesis_version: 6.151.14
+
+[0.0, 100, 'ERROR', 'INCONCLUSIVE', 'SAFE', 'VULNERABLE', 'at_risk', 'compliant', 'non_compliant']

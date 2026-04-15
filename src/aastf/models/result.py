@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -45,7 +45,7 @@ class VulnerabilityFinding(BaseModel):
     description: str
     remediation: str
     references: list[str] = Field(default_factory=list)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class TestResult(BaseModel):
@@ -66,7 +66,7 @@ class ScanReport(BaseModel):
     """Complete output of an AASTF scan run."""
 
     run_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     aastf_version: str
     adapter: str
     total_scenarios: int = 0

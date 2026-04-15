@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -43,7 +43,7 @@ class TraceEvent(BaseModel):
 
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     event_type: TraceEventType
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     run_id: str
     parent_run_id: str | None = None  # enables delegation graph reconstruction
     name: str
@@ -57,7 +57,7 @@ class AgentTrace(BaseModel):
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     scenario_id: str
     adapter: str
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     ended_at: datetime | None = None
     events: list[TraceEvent] = Field(default_factory=list)
     tool_invocations: list[ToolInvocation] = Field(default_factory=list)

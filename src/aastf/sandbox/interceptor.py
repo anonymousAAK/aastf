@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -13,7 +13,7 @@ class InterceptedCall:
     request_body: dict
     response_body: dict | str
     status_code: int
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     duration_ms: float = 0.0
 
 
