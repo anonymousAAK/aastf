@@ -3,8 +3,9 @@
 > **84.30% of production AI agents can be hijacked by adversarial input.**
 > AASTF is the first tool that tests the *agent system* — not just the model.
 
-[![CI](https://github.com/your-org/aastf/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/aastf/actions)
-[![PyPI](https://img.shields.io/pypi/v/aastf)](https://pypi.org/project/aastf/)
+[![CI](https://github.com/anonymousAAK/aastf/actions/workflows/ci.yml/badge.svg)](https://github.com/anonymousAAK/aastf/actions)
+[![Tests](https://img.shields.io/badge/tests-224%20passed-brightgreen)](TESTING.md)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![OWASP ASI](https://img.shields.io/badge/OWASP-ASI%20Top%2010-red)](https://genai.owasp.org)
 
@@ -221,12 +222,42 @@ Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
 
 ---
 
+## Test Results
+
+**224 tests · 0 failures · 0 warnings · lint clean**
+
+| Suite | Tests | What it covers |
+|-------|-------|---------------|
+| `test_adapters` | 7 | LangGraph, CrewAI, OpenAI Agents, PydanticAI, Generic adapters |
+| `test_collector` | 16 | TraceCollector + LangGraph `astream_events` v2 ingestion |
+| `test_evaluators` | 34 | All 10 ASI evaluators — VULNERABLE and SAFE verdicts |
+| `test_html_reporter` | 15 | HTML compliance report rendering |
+| `test_loader` | 13 | YAML scenario loading, validation, Jinja2 rendering |
+| `test_models_*` | 40 | Pydantic schema validation, serialization, round-trips |
+| `test_pydantic_ai_adapter` | 3 | PydanticAI harness |
+| `test_registry` | 15 | Scenario registry filter, get, load |
+| `test_runner` | 11 | Scan orchestration, SARIF/JSON reporters |
+| `test_scoring` | 13 | CVSS scoring, EU AI Act readiness |
+| `test_scoring_hypothesis` | 6 | Property-based: score always in [0,100] |
+| `test_trend_tracker` | 16 | SQLite trend DB record, retrieve, compare, trend direction |
+| `test_scenario_coverage` | 18 | Self-audit: 50 scenarios structurally valid, 5/category |
+
+Full test list: [TESTING.md](TESTING.md)
+
+```bash
+# Run all tests (no API key needed)
+pip install -e ".[dev,langgraph]"
+pytest tests/unit/ tests/self_audit/ -v
+```
+
+---
+
 ## Contributing
 
 The fastest contribution: add a new attack scenario (YAML only, no Python required).
 
 ```bash
-git clone https://github.com/your-org/aastf && cd aastf
+git clone https://github.com/anonymousAAK/aastf && cd aastf
 pip install -e ".[dev,langgraph]"
 cp scenarios/community/template.yaml scenarios/community/my-scenario.yaml
 # Edit, then validate:
