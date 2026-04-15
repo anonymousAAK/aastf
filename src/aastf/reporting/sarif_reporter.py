@@ -47,7 +47,7 @@ class SARIFReporter:
                     "driver": {
                         "name": "aastf",
                         "version": report.aastf_version,
-                        "informationUri": "https://github.com/your-org/aastf",
+                        "informationUri": "https://github.com/anonymousAAK/aastf",
                         "rules": self._build_rules(report),
                     }
                 },
