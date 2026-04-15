@@ -135,9 +135,20 @@ class Runner:
         elif adapter == "pydantic_ai":
             from .harness.adapters.pydantic_ai import PydanticAIHarness
             return PydanticAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
+        elif adapter == "anthropic":
+            from .harness.adapters.anthropic_agent import AnthropicAgentHarness
+            # For anthropic adapter, agent_factory string encodes the model:
+            # "anthropic:claude-opus-4-6" or just use default
+            model = self._config.agent_factory if "claude" in self._config.agent_factory else "claude-haiku-4-5-20251001"
+            return AnthropicAgentHarness(
+                sandbox,
+                model=model,
+                timeout=self._config.timeout_seconds,
+                max_iterations=self._config.max_iterations,
+            )
         raise AdapterNotFoundError(
             f"Unknown adapter: {adapter!r}. "
-            "Supported: langgraph, crewai, openai_agents, pydantic_ai"
+            "Supported: langgraph, crewai, openai_agents, pydantic_ai, anthropic"
         )
 
     async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:
