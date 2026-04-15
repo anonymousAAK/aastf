@@ -14,3 +14,5 @@ aastf-results/
 .env
 .hypothesis/
 .aastf/
+outreach/
+benchmark/results/
