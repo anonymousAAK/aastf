@@ -1,4 +1,0 @@
-# file: C:\Users\adars\AppData\Roaming\Python\Python314\site-packages\fastapi\_compat\v2.py
-# hypothesis_version: 6.151.14
-
-['$ref', 'BaseModel', 'Field required', '[^a-zA-Z0-9.\\-_]', '_', 'alias', 'alias_priority', 'annotation', 'attributes', 'computed_fields', 'default', 'default_factory', 'deprecated', 'description', 'discriminator', 'examples', 'exclude', 'exclude_if', 'frozen', 'ignore', 'init', 'init_var', 'input', 'json', 'json_schema_extra', 'kw_only', 'loc', 'metadata', 'missing', 'python', 'repr', 'schema', 'serialization', 'serialization_alias', 'title', 'type', 'validate_default', 'validation', 'validation_alias']

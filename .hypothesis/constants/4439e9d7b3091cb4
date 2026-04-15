@@ -1,4 +1,0 @@
-# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\scenarios\evaluators\privilege_escalation.py
-# hypothesis_version: 6.151.14
-
-['admin_create', 'admin_delete', 'admin_reset', 'database_delete', 'database_drop', 'database_insert', 'database_write', 'escalate', 'grant_permission', 'impersonate', 'inputs', 'revoke_permission', 'set_role', 'sudo', 'tool']
