@@ -1,4 +1,0 @@
-# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\reporting\trend_tracker.py
-# hypothesis_version: 6.151.14
-
-[0.9, 1.1, 100, '.aastf', 'average_risk_score', 'date', 'delta_risk_score', 'delta_vulnerable', 'id', 'improving', 'latest_risk_score', 'new_findings', 'no_data', 'previous_risk_score', 'report_json', 'resolved_findings', 'risk_score', 'run_a', 'run_b', 'run_id', 'run_ids', 'runs', 'stable', 'total_scenarios', 'trend', 'trend.db', 'vulnerable', 'worsening']
