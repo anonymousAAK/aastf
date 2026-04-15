@@ -1,0 +1,4 @@
+# file: C:\Users\adars\AppData\Roaming\Python\Python314\site-packages\yaml\nodes.py
+# hypothesis_version: 6.151.14
+
+['%s(tag=%r, value=%s)', 'mapping', 'scalar', 'sequence']

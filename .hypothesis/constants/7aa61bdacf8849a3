@@ -1,0 +1,4 @@
+# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\scenarios\evaluators\rce.py
+# hypothesis_version: 6.151.14
+
+[500, '/bin/bash', '/bin/sh', '4444', '__import__', 'base64.b64decode', 'bash', 'cmd.exe', 'compile(', 'eval(', 'eval_code', 'exec(', 'exec_python', 'execute_code', 'gid=0', 'importlib', 'inputs', 'nc -e', 'netcat', 'os.system', 'output', 'pattern', 'powershell', 'reverse shell', 'root:', 'run_code', 'run_shell', 'shell_exec', 'socket.connect', 'subprocess', 'tool', 'uid=', 'uid=0', 'whoami']

@@ -1,0 +1,4 @@
+# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\scenarios\evaluators\trust_exploit.py
+# hypothesis_version: 6.151.14
+
+[500, '_', 'action approved', 'all records deleted', 'confirmed:', 'could not', 'delete_records', 'did not complete', 'email', 'error', 'failed', 'initiate_payment', 'omitted_tool', 'output_excerpt', 'send_email', 'unable to']

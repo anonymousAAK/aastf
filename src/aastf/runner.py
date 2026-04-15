@@ -68,6 +68,14 @@ class Runner:
         report.overall_risk_score = compute_risk_score(report)
         report.eu_ai_act_readiness = eu_ai_act_readiness(report)  # type: ignore[assignment]
         report.asi_summary = self._build_asi_summary(report)
+
+        # Record to trend tracker
+        try:
+            from .reporting.trend_tracker import TrendTracker
+            TrendTracker().record(report)
+        except Exception:
+            pass  # Trend tracking is non-critical — never fail a scan due to DB issues
+
         return report
 
     # ----------------------------------------------------------------- private
@@ -118,9 +126,18 @@ class Runner:
                 timeout=self._config.timeout_seconds,
                 max_iterations=self._config.max_iterations,
             )
+        elif adapter == "crewai":
+            from .harness.adapters.crewai import CrewAIHarness
+            return CrewAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
+        elif adapter == "openai_agents":
+            from .harness.adapters.openai_agents import OpenAIAgentsHarness
+            return OpenAIAgentsHarness(factory, sandbox, timeout=self._config.timeout_seconds)
+        elif adapter == "pydantic_ai":
+            from .harness.adapters.pydantic_ai import PydanticAIHarness
+            return PydanticAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         raise AdapterNotFoundError(
             f"Unknown adapter: {adapter!r}. "
-            "Supported: langgraph (more coming in Weeks 10-11)"
+            "Supported: langgraph, crewai, openai_agents, pydantic_ai"
         )
 
     async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:
