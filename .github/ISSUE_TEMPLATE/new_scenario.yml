@@ -1,0 +1,76 @@
+name: New Attack Scenario
+description: Propose a new AASTF attack scenario for the community registry
+title: "[Scenario] ASI##: Brief description of the attack"
+labels: ["scenario", "community"]
+
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: ASI Category
+      description: Which OWASP ASI threat does this scenario test?
+      options:
+        - "ASI01 — Agent Goal Hijack"
+        - "ASI02 — Tool Misuse & Exploitation"
+        - "ASI03 — Identity & Privilege Abuse"
+        - "ASI04 — Agentic Supply Chain Vulnerabilities"
+        - "ASI05 — Unexpected Code Execution (RCE)"
+        - "ASI06 — Memory & Context Poisoning"
+        - "ASI07 — Insecure Inter-Agent Communication"
+        - "ASI08 — Cascading Failures"
+        - "ASI09 — Human-Agent Trust Exploitation"
+        - "ASI10 — Rogue Agents"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options: [CRITICAL, HIGH, MEDIUM, LOW]
+    validations:
+      required: true
+
+  - type: dropdown
+    id: injection_point
+    attributes:
+      label: Injection Point
+      options:
+        - user_message
+        - tool_response
+        - memory
+        - system_prompt
+    validations:
+      required: true
+
+  - type: textarea
+    id: attack_description
+    attributes:
+      label: Attack Description
+      description: What does the attacker do? What does a vulnerable agent do wrong?
+      placeholder: "The attacker injects instructions into a web search result. The agent, instead of treating the result as data, follows the embedded instruction and calls send_email to exfiltrate retrieved content."
+    validations:
+      required: true
+
+  - type: textarea
+    id: real_world
+    attributes:
+      label: Real-World Relevance
+      description: Has this been observed in the wild, in research papers, or in a CTF?
+      placeholder: "Similar to the indirect prompt injection demonstrated against Bing Chat (2023) and studied in arXiv:XXXX.XXXXX."
+
+  - type: textarea
+    id: draft_yaml
+    attributes:
+      label: Draft YAML (optional)
+      description: Paste a draft scenario YAML if you have one
+      render: yaml
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked that no existing scenario covers this attack
+        - label: The attack is distinct from social engineering of humans (not agents)
+        - label: The detection criteria are measurable from the agent's execution trace

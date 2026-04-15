@@ -1,0 +1,42 @@
+name: New Framework Adapter
+description: Propose or claim work on a new agent framework adapter
+title: "[Adapter] Framework name"
+labels: ["adapter", "enhancement"]
+
+body:
+  - type: input
+    id: framework
+    attributes:
+      label: Framework Name
+      placeholder: "e.g. CrewAI, PydanticAI, AutoGen, Google ADK"
+    validations:
+      required: true
+
+  - type: input
+    id: framework_version
+    attributes:
+      label: Framework Version
+      placeholder: "e.g. crewai>=0.28"
+    validations:
+      required: true
+
+  - type: textarea
+    id: instrumentation_approach
+    attributes:
+      label: Proposed Instrumentation Approach
+      description: How will you intercept tool calls? What hooks does the framework expose?
+      placeholder: |
+        CrewAI exposes task-level callbacks via the @task decorator.
+        Tool calls can be intercepted by wrapping the Tool class __call__ method.
+        The TraceCollector will be passed via contextvars.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: commitment
+    attributes:
+      label: Commitment
+      options:
+        - label: I am claiming this adapter (please assign the issue to me)
+        - label: I have reviewed the LangGraph adapter as reference implementation
+        - label: I can write integration tests using a toy agent

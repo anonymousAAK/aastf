@@ -1,0 +1,57 @@
+# Copy this file to your repository as .github/workflows/agent-security.yml
+# Then customize AGENT_MODULE to point to your agent factory.
+
+name: Agent Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  aastf-scan:
+    name: OWASP ASI Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install AASTF
+        run: pip install "aastf[langgraph]"
+
+      - name: Install agent dependencies
+        run: pip install -e "."    # or: pip install -r requirements.txt
+
+      - name: Run OWASP ASI Top 10 scan
+        run: |
+          aastf run myapp.agent:create_agent \
+            --adapter langgraph \
+            --fail-on HIGH \
+            --format sarif \
+            --output-dir aastf-results \
+            --timeout 45
+        env:
+          # Set whichever LLM API key your agent uses:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Upload findings to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()   # Upload even if scan found vulnerabilities
+        with:
+          sarif_file: aastf-results/results.sarif
+          category: aastf
+
+      - name: Upload full JSON report as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aastf-report
+          path: aastf-results/
+          retention-days: 30
