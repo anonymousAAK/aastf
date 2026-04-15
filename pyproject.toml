@@ -17,11 +17,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Security",
 ]
-
-[project.urls]
-Homepage = "https://github.com/anonymousAAK/aastf"
-Repository = "https://github.com/anonymousAAK/aastf"
-Issues = "https://github.com/anonymousAAK/aastf/issues"
 dependencies = [
     "pydantic>=2.5",
     "typer>=0.12",
@@ -34,6 +29,11 @@ dependencies = [
     "jinja2>=3.1",
     "anyio>=4.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/anonymousAAK/aastf"
+Repository = "https://github.com/anonymousAAK/aastf"
+Issues = "https://github.com/anonymousAAK/aastf/issues"
 
 [project.optional-dependencies]
 langgraph = ["langgraph>=1.0", "langchain-core>=0.3"]
