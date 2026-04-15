@@ -4,6 +4,8 @@
 > AASTF is the first tool that tests the *agent system* — not just the model.
 
 [![CI](https://github.com/anonymousAAK/aastf/actions/workflows/ci.yml/badge.svg)](https://github.com/anonymousAAK/aastf/actions)
+[![PyPI](https://img.shields.io/pypi/v/aastf)](https://pypi.org/project/aastf/)
+[![Downloads](https://img.shields.io/pypi/dm/aastf)](https://pypi.org/project/aastf/)
 [![Tests](https://img.shields.io/badge/tests-224%20passed-brightgreen)](TESTING.md)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
