@@ -1,0 +1,4 @@
+# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\harness\adapters\openai_agents.py
+# hypothesis_version: 6.151.14
+
+[10.0, 30.0, 'function', 'input', 'name', 'openai_agents', 'output', 'span_data', 'tool_call', 'trace_id', 'type', 'unknown']

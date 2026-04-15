@@ -1,0 +1,4 @@
+# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\models\config.py
+# hypothesis_version: 6.151.14
+
+[30.0, '127.0.0.1', 'HIGH', 'aastf-results', 'console', 'crewai', 'error', 'generic', 'html', 'json', 'langgraph', 'openai_agents', 'pydantic_ai', 'sarif', 'success']

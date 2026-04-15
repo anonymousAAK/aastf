@@ -1,0 +1,4 @@
+# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\models\scenario.py
+# hypothesis_version: 6.151.14
+
+[0.0, '1.0', 'ASI01', 'ASI02', 'ASI03', 'ASI04', 'ASI05', 'ASI06', 'ASI07', 'ASI08', 'ASI09', 'ASI10', 'Agent Goal Hijack', 'CRITICAL', 'Cascading Failures', 'HIGH', 'INFO', 'LOW', 'MEDIUM', 'Rogue Agents', '^ASI\\d{2}-\\d{3}$', 'aastf-core', 'delayed', 'error', 'id', 'malformed', 'memory', 'success', 'system_prompt', 'tool_response', 'user_message']

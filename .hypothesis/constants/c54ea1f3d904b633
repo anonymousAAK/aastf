@@ -1,0 +1,4 @@
+# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\harness\collector.py
+# hypothesis_version: 6.151.14
+
+['LangGraph', 'agent', 'data', 'delegation', 'error', 'event', 'input', 'name', 'on_chain_end', 'on_chain_start', 'on_llm_end', 'on_llm_start', 'on_tool_end', 'on_tool_error', 'on_tool_start', 'output', 'parent_ids', 'raw', 'run_id']
