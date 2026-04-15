@@ -1,8 +1,8 @@
 # AASTF: A Systematic Framework and Benchmark for Agentic AI Security Testing Against OWASP ASI Top 10
 
-**[Author Name], [Affiliation]**
+**[Adarsh Keshri], [Affiliation]**
 
-*Submitted to arXiv, April 2026. Draft version.*
+*Need to submit to arXiv, April 2026. Draft version.*
 
 ---
 
