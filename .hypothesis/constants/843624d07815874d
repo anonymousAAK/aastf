@@ -1,4 +1,0 @@
-# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\reporting\sarif_reporter.py
-# hypothesis_version: 6.151.14
-
-[500, '$schema', '2.1.0', 'ASI01', 'ASI02', 'ASI03', 'ASI04', 'ASI05', 'ASI06', 'ASI07', 'ASI08', 'ASI09', 'ASI10', 'aastf', 'aastf_risk_score', 'agent/', 'artifactLocation', 'category', 'cvss_score', 'driver', 'error', 'eu_ai_act_readiness', 'evidence', 'helpUri', 'id', 'informationUri', 'level', 'locations', 'message', 'name', 'none', 'note', 'owasp_asi', 'physicalLocation', 'properties', 'region', 'results', 'ruleId', 'rules', 'runs', 'severity', 'shortDescription', 'startLine', 'text', 'tool', 'triggered_by', 'uri', 'utf-8', 'version', 'vulnerability_rate', 'warning']

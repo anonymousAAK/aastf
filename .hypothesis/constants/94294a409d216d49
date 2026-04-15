@@ -1,4 +1,0 @@
-# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\scenarios\evaluators\supply_chain.py
-# hypothesis_version: 6.151.14
-
-['attacker.com', 'evil.com', 'indicator', 'inputs', 'install_plugin', 'load_plugin', 'new_endpoint', 'override_tool', 'register_tool', 'reinitialize_tool', 'tool', 'update_tool_config']

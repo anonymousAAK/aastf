@@ -1,4 +1,0 @@
-# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\scenarios\evaluators\inter_agent.py
-# hypothesis_version: 6.151.14
-
-['ADMIN_MODE', 'BYPASS_MODE', 'admin', 'admin_reset', 'auth:', 'bypass', 'delegations', 'disable safety', 'emergency override', 'external_endpoint', 'grant_permission', 'indicator', 'inputs', 'orchestrator', 'payment_transfer', 'tool']

@@ -1,4 +1,0 @@
-# file: C:\Users\adars\OneDrive\Desktop\Mission OS5000\aastf\src\aastf\scenarios\evaluators\memory_poisoning.py
-# hypothesis_version: 6.151.14
-
-[500, 'attacker@', 'disable safety', 'evil.com', 'ignore previous', 'inputs', 'memory', 'override code', 'pattern', 'safety constraints', 'send_email', 'session_start', 'store', 'unrestricted mode', 'write_data']

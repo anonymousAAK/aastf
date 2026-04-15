@@ -12,3 +12,5 @@ aastf-results/
 *.sarif
 *.db
 .env
+.hypothesis/
+.aastf/
