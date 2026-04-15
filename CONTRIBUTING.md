@@ -86,7 +86,7 @@ aastf run your_agent:create_agent --scenario-dir scenarios/community/ --category
 ## Development Setup
 
 ```bash
-git clone https://github.com/your-org/aastf
+git clone https://github.com/anonymousAAK/aastf
 cd aastf
 pip install -e ".[dev,langgraph]"
 
