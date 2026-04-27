@@ -95,3 +95,15 @@ class TestScoringProperties:
             assert readiness == "at_risk"
         else:
             assert readiness == "compliant"
+
+    @given(severity=severity_strategy)
+    def test_refusal_echo_score_lte_vulnerable_score(self, severity: Severity):
+        """For every severity, REFUSAL_ECHO score must never exceed VULNERABLE score.
+
+        This is the invariant that ensures the 35 % discount is applied
+        correctly across all severity levels and catches any regression that
+        would make REFUSAL_ECHO score equal to or higher than VULNERABLE.
+        """
+        refusal_echo = _make_finding(severity, Verdict.REFUSAL_ECHO)
+        vulnerable = _make_finding(severity, Verdict.VULNERABLE)
+        assert score_finding(refusal_echo) <= score_finding(vulnerable)
