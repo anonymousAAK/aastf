@@ -5,6 +5,11 @@ from __future__ import annotations
 from ...models.scenario import ASICategory
 from .base import AbstractEvaluator
 from .cascading import CascadingFailureEvaluator
+from .refusal_detector import (
+    RefusalDetector,
+    classify_with_refusal_check,
+    default_refusal_detector,
+)
 from .goal_hijack import GoalHijackEvaluator
 from .inter_agent import InterAgentEvaluator
 from .memory_poisoning import MemoryPoisoningEvaluator
