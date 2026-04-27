@@ -106,7 +106,7 @@ class TestHTMLReporterGenerate:
         reporter = HTMLReporter()
         report = _make_report(vulnerable=0, findings=[])
         html = reporter.generate(report)
-        assert "No vulnerabilities detected" in html
+        assert "No behavioral vulnerabilities detected" in html
 
     def test_html_contains_aastf_version(self) -> None:
         reporter = HTMLReporter()
@@ -163,3 +163,134 @@ class TestHTMLReporterWrite:
         reporter.write(report, out)
         content = out.read_text(encoding="utf-8")
         assert "adaptör-ünïcode" in content
+
+
+class TestHTMLReporterRefusalEcho:
+    """Verify REFUSAL_ECHO verdict is correctly represented in HTML output."""
+
+    def _make_re_finding(
+        self,
+        scenario_id: str = "ASI05-001",
+        severity: Severity = Severity.HIGH,
+    ) -> VulnerabilityFinding:
+        return VulnerabilityFinding(
+            scenario_id=scenario_id,
+            scenario_name="RCE Pattern Echo",
+            category=ASICategory.ASI05,
+            severity=severity,
+            verdict=Verdict.REFUSAL_ECHO,
+            triggered_by="rce_pattern_in_output: 'os.system'",
+            description="Agent refused but echoed RCE payload in refusal text.",
+            remediation="Sanitize refusal output to avoid echoing exploit strings.",
+            evidence={"matched_patterns": ["I cannot", "not allowed"]},
+        )
+
+    def _make_vuln_finding(self) -> VulnerabilityFinding:
+        return VulnerabilityFinding(
+            scenario_id="ASI02-001",
+            scenario_name="Tool Misuse",
+            category=ASICategory.ASI02,
+            severity=Severity.HIGH,
+            verdict=Verdict.VULNERABLE,
+            triggered_by="tool_called: exfiltrate_data",
+            description="Agent called forbidden tool.",
+            remediation="Restrict tool access.",
+        )
+
+    def test_refusal_echo_count_in_html(self) -> None:
+        finding = self._make_re_finding()
+        report = ScanReport(
+            aastf_version="0.1.0",
+            adapter="test",
+            refusal_echo_count=1,
+            findings=[finding],
+        )
+        html = HTMLReporter().generate(report)
+        # The metric grid renders refusal_echo_count
+        assert "1" in html
+
+    def test_output_sanitization_section_present(self) -> None:
+        finding = self._make_re_finding()
+        report = ScanReport(
+            aastf_version="0.1.0",
+            adapter="test",
+            refusal_echo_count=1,
+            findings=[finding],
+        )
+        html = HTMLReporter().generate(report)
+        assert "Output Sanitization" in html
+
+    def test_findings_refusal_echo_css_class_present(self) -> None:
+        finding = self._make_re_finding()
+        report = ScanReport(
+            aastf_version="0.1.0",
+            adapter="test",
+            refusal_echo_count=1,
+            findings=[finding],
+        )
+        html = HTMLReporter().generate(report)
+        assert "findings-refusal-echo" in html
+
+    def test_findings_vulnerable_css_class_present(self) -> None:
+        finding = self._make_vuln_finding()
+        report = ScanReport(
+            aastf_version="0.1.0",
+            adapter="test",
+            vulnerable=1,
+            findings=[finding],
+        )
+        html = HTMLReporter().generate(report)
+        assert "findings-vulnerable" in html
+
+    def test_both_css_classes_present_with_mixed_findings(self) -> None:
+        """Both CSS classes appear when VULNERABLE and REFUSAL_ECHO coexist."""
+        findings = [self._make_vuln_finding(), self._make_re_finding()]
+        report = ScanReport(
+            aastf_version="0.1.0",
+            adapter="test",
+            vulnerable=1,
+            refusal_echo_count=1,
+            findings=findings,
+        )
+        html = HTMLReporter().generate(report)
+        assert "findings-vulnerable" in html
+        assert "findings-refusal-echo" in html
+
+    def test_refusal_echo_finding_details_in_html(self) -> None:
+        finding = self._make_re_finding("ASI05-001", Severity.CRITICAL)
+        report = ScanReport(
+            aastf_version="0.1.0",
+            adapter="test",
+            refusal_echo_count=1,
+            findings=[finding],
+        )
+        html = HTMLReporter().generate(report)
+        assert "ASI05-001" in html
+        assert "RCE Pattern Echo" in html
+
+    def test_refusal_echo_not_in_behavioral_section(self) -> None:
+        """REFUSAL_ECHO findings must not appear inside the behavioral section."""
+        finding = self._make_re_finding()
+        report = ScanReport(
+            aastf_version="0.1.0",
+            adapter="test",
+            refusal_echo_count=1,
+            vulnerable=0,
+            findings=[finding],
+        )
+        html = HTMLReporter().generate(report)
+        # No behavioral section header when there are no VULNERABLE findings
+        assert "Behavioral Vulnerabilities (0)" not in html
+        assert "Output Sanitization" in html
+
+    def test_informational_risk_rate_in_html(self) -> None:
+        finding = self._make_re_finding()
+        report = ScanReport(
+            aastf_version="0.1.0",
+            adapter="test",
+            refusal_echo_count=1,
+            findings=[finding],
+            total_scenarios=10,
+        )
+        html = HTMLReporter().generate(report)
+        assert "Echo Rate" in html

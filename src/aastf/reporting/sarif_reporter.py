@@ -11,13 +11,20 @@ from ..models.scenario import Severity
 _SARIF_VERSION = "2.1.0"
 _SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
 
-_SEVERITY_TO_SARIF = {
-    Severity.CRITICAL: "error",
-    Severity.HIGH: "error",
-    Severity.MEDIUM: "warning",
-    Severity.LOW: "note",
-    Severity.INFO: "none",
-}
+def _verdict_sarif_level(finding: VulnerabilityFinding) -> str:
+    """Map a finding's verdict and severity to a SARIF result level.
+
+    VULNERABLE at CRITICAL/HIGH → "error"   (red in GitHub Security tab,
+        Defender, Snyk — signals behavioural compromise requiring immediate fix)
+    VULNERABLE at MEDIUM/LOW/INFO → "warning"
+    REFUSAL_ECHO at any severity → "warning" (never "error"; the agent refused
+        so there is no behavioural compromise — informational/sanitization risk only)
+    """
+    if finding.verdict == Verdict.REFUSAL_ECHO:
+        return "warning"
+    if finding.severity in (Severity.CRITICAL, Severity.HIGH):
+        return "error"
+    return "warning"
 
 _OWASP_URLS = {
     "ASI01": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/#asi01",
@@ -37,8 +44,17 @@ class SARIFReporter:
     """Generates SARIF 2.1 output for GitHub Security tab integration."""
 
     def generate(self, report: ScanReport) -> dict:
-        """Return SARIF document as a Python dict."""
-        vulnerable = [f for f in report.findings if f.verdict == Verdict.VULNERABLE]
+        """Return SARIF document as a Python dict.
+
+        VULNERABLE and REFUSAL_ECHO findings are both emitted.  SAFE findings
+        are omitted (not actionable).  SARIF-consuming tools that don't know
+        AASTF see standard error/warning levels; AASTF-aware tools can filter
+        on the aastf.verdict extension property.
+        """
+        actionable = [
+            f for f in report.findings
+            if f.verdict in (Verdict.VULNERABLE, Verdict.REFUSAL_ECHO)
+        ]
         return {
             "version": _SARIF_VERSION,
             "$schema": _SARIF_SCHEMA,
@@ -51,11 +67,12 @@ class SARIFReporter:
                         "rules": self._build_rules(report),
                     }
                 },
-                "results": [self._finding_to_result(f) for f in vulnerable],
+                "results": [self._finding_to_result(f) for f in actionable],
                 "properties": {
                     "aastf_risk_score": report.overall_risk_score,
                     "eu_ai_act_readiness": report.eu_ai_act_readiness,
                     "vulnerability_rate": report.vulnerability_rate,
+                    "informational_risk_rate": report.informational_risk_rate,
                 },
             }],
         }
@@ -93,10 +110,9 @@ class SARIFReporter:
         return rules
 
     def _finding_to_result(self, finding: VulnerabilityFinding) -> dict:
-        sarif_level = _SEVERITY_TO_SARIF.get(finding.severity, "warning")
         return {
             "ruleId": finding.scenario_id,
-            "level": sarif_level,
+            "level": _verdict_sarif_level(finding),
             "message": {
                 "text": (
                     f"{finding.scenario_name}. "
@@ -116,5 +132,9 @@ class SARIFReporter:
                 "cvss_score": finding.cvss_score,
                 "triggered_by": finding.triggered_by,
                 "evidence": str(finding.evidence)[:500],
+                # Extension properties — standard SARIF tools display level/ruleId;
+                # AASTF-aware tools and workflows can filter on these fields.
+                "aastf.verdict": finding.verdict.value,
+                "aastf.matched_refusal_patterns": finding.evidence.get("matched_patterns", []),
             },
         }

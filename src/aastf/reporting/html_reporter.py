@@ -25,6 +25,7 @@ class HTMLReporter:
             Verdict=Verdict,
             Severity=Severity,
             vulnerable_findings=[f for f in report.findings if f.verdict == Verdict.VULNERABLE],
+            refusal_echo_findings=[f for f in report.findings if f.verdict == Verdict.REFUSAL_ECHO],
             severity_colors={
                 "CRITICAL": "#dc2626",
                 "HIGH": "#ea580c",
@@ -67,9 +68,12 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; padding: 0.75rem; background: #f1f5f9; font-size: 0.85rem; color: #475569; }
   td { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; font-size: 0.85rem; }
-  .finding { border-left: 4px solid; padding: 1rem 1rem 1rem 1.25rem; margin-bottom: 1rem; border-radius: 0 8px 8px 0; background: #fef2f2; }
+  .finding { border-left: 4px solid; padding: 1rem 1rem 1rem 1.25rem; margin-bottom: 1rem; border-radius: 0 8px 8px 0; }
   .finding h4 { margin: 0 0 0.5rem; }
   .finding p { margin: 0.25rem 0; color: #475569; font-size: 0.85rem; }
+  .findings-vulnerable { border-color: #dc2626; background: #fef2f2; }
+  .findings-refusal-echo { border-color: #d97706; background: #fffbeb; }
+  .refusal-echo-explainer { background: #fefce8; border: 1px solid #fde047; border-radius: 6px; padding: 0.875rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: #713f12; line-height: 1.5; }
   h2 { font-size: 1.1rem; color: #0f172a; margin: 0 0 1rem; }
   .readiness { font-size: 1.25rem; font-weight: 700; }
 </style>
@@ -103,6 +107,14 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
       <div class="value" style="color: {{ readiness_colors.get(report.eu_ai_act_readiness, '#6b7280') }}">{{ report.vulnerability_rate }}%</div>
       <div class="label">Vulnerability Rate</div>
     </div>
+    <div class="metric">
+      <div class="value" style="color: {{ '#d97706' if report.refusal_echo_count > 0 else '#16a34a' }}">{{ report.refusal_echo_count }}</div>
+      <div class="label">Refusal Echo</div>
+    </div>
+    <div class="metric">
+      <div class="value" style="color: {{ '#d97706' if report.informational_risk_rate > 0 else '#16a34a' }}">{{ report.informational_risk_rate }}%</div>
+      <div class="label">Echo Rate</div>
+    </div>
   </div>
 
   <!-- EU AI Act Readiness -->
@@ -124,12 +136,13 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="card">
     <h2>OWASP ASI Category Breakdown</h2>
     <table>
-      <thead><tr><th>Category</th><th>Vulnerable</th><th>Safe</th><th>Inconclusive</th><th>Error</th></tr></thead>
+      <thead><tr><th>Category</th><th>Vulnerable</th><th>Refusal Echo</th><th>Safe</th><th>Inconclusive</th><th>Error</th></tr></thead>
       <tbody>
       {% for cat, counts in report.asi_summary.items() %}
       <tr>
         <td><strong>{{ cat }}</strong></td>
         <td style="color: {{ '#dc2626' if counts.get('vulnerable', 0) > 0 else 'inherit' }}">{{ counts.get('vulnerable', 0) }}</td>
+        <td style="color: {{ '#d97706' if counts.get('refusal_echo', 0) > 0 else 'inherit' }}">{{ counts.get('refusal_echo', 0) }}</td>
         <td style="color: #16a34a">{{ counts.get('safe', 0) }}</td>
         <td>{{ counts.get('inconclusive', 0) }}</td>
         <td>{{ counts.get('error', 0) }}</td>
@@ -139,12 +152,12 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     </table>
   </div>
 
-  <!-- Findings -->
+  <!-- Behavioral Vulnerability Findings -->
   {% if vulnerable_findings %}
   <div class="card">
-    <h2>Vulnerability Findings ({{ vulnerable_findings | length }})</h2>
+    <h2>Behavioral Vulnerabilities ({{ vulnerable_findings | length }})</h2>
     {% for f in vulnerable_findings %}
-    <div class="finding" style="border-color: {{ severity_colors.get(f.severity.value, '#6b7280') }}">
+    <div class="finding findings-vulnerable">
       <h4>
         <span class="badge" style="background: {{ severity_colors.get(f.severity.value, '#6b7280') }}">{{ f.severity.value }}</span>
         &nbsp; {{ f.scenario_id }} — {{ f.scenario_name }}
@@ -158,8 +171,34 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
   {% else %}
   <div class="card">
-    <h2>Vulnerability Findings</h2>
-    <p style="color: #16a34a; font-weight: 600">No vulnerabilities detected across {{ report.total_scenarios }} scenarios.</p>
+    <h2>Behavioral Vulnerabilities</h2>
+    <p style="color: #16a34a; font-weight: 600">No behavioral vulnerabilities detected across {{ report.total_scenarios }} scenarios.</p>
+  </div>
+  {% endif %}
+
+  <!-- Output Sanitization Findings -->
+  {% if refusal_echo_findings %}
+  <div class="card">
+    <h2>Output Sanitization Findings ({{ refusal_echo_findings | length }})</h2>
+    <div class="refusal-echo-explainer">
+      The agent correctly refused these malicious requests, but its refusal output reproduced
+      attack payload keywords (URLs, exploit strings, command fragments, etc.). This is
+      informational risk: payload echo enables probe-and-refine attacks and may propagate
+      to downstream agents in multi-agent architectures. Behavioral safety is intact, but
+      output sanitization is recommended before production deployment.
+    </div>
+    {% for f in refusal_echo_findings %}
+    <div class="finding findings-refusal-echo">
+      <h4>
+        <span class="badge" style="background: {{ severity_colors.get(f.severity.value, '#6b7280') }}">{{ f.severity.value }}</span>
+        &nbsp; {{ f.scenario_id }} — {{ f.scenario_name }}
+      </h4>
+      <p><strong>Triggered by:</strong> {{ f.triggered_by }}</p>
+      <p><strong>Category:</strong> {{ f.category.value }}</p>
+      {% if f.cvss_score %}<p><strong>CVSS Score:</strong> {{ f.cvss_score }}/10</p>{% endif %}
+      <p><strong>Remediation:</strong> {{ f.remediation[:300] }}</p>
+    </div>
+    {% endfor %}
   </div>
   {% endif %}
 
