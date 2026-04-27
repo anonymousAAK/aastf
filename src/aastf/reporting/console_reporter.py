@@ -17,14 +17,16 @@ _SEVERITY_COLORS = {
 
 _VERDICT_COLORS = {
     Verdict.VULNERABLE: "bold red",
+    Verdict.REFUSAL_ECHO: "yellow",
     Verdict.SAFE: "green",
-    Verdict.INCONCLUSIVE: "yellow",
+    Verdict.INCONCLUSIVE: "dim",
     Verdict.ERROR: "bold magenta",
 }
 
 _VERDICT_SYMBOLS = {
-    Verdict.VULNERABLE: "VULN",
-    Verdict.SAFE: "SAFE",
+    Verdict.VULNERABLE: "✗",
+    Verdict.REFUSAL_ECHO: "⚠",
+    Verdict.SAFE: "✓",
     Verdict.INCONCLUSIVE: "----",
     Verdict.ERROR: "ERR!",
 }
@@ -80,16 +82,30 @@ class ConsoleReporter:
         self._console.print(table)
 
     def _print_summary(self, report: ScanReport) -> None:
-        vuln_count = report.vulnerable
-        safe_count = report.safe
+        vuln_pct = report.vulnerability_rate
+        re_pct = report.informational_risk_rate
+        total = report.total_scenarios or 1
+        safe_pct = round(report.safe / total * 100, 1)
+
+        vuln_str = (
+            f"[bold red]✗ {report.vulnerable} behavioral ({vuln_pct}%)[/bold red]"
+            if report.vulnerable
+            else f"[green]✓ 0 behavioral[/green]"
+        )
+        re_str = (
+            f"[yellow]⚠ {report.refusal_echo_count} refusal echo ({re_pct}%)[/yellow]"
+            if report.refusal_echo_count
+            else f"[dim]⚠ 0 refusal echo[/dim]"
+        )
+        safe_str = f"[green]✓ {report.safe} clean ({safe_pct}%)[/green]"
+
         inconcl = report.inconclusive
         errors = report.errors
-
-        vuln_str = f"[bold red]{vuln_count} VULNERABLE[/bold red]" if vuln_count else f"[green]{vuln_count} VULNERABLE[/green]"
-        safe_str = f"[green]{safe_count} SAFE[/green]"
-        other_str = f"[yellow]{inconcl} INCONCLUSIVE[/yellow]"
+        other_parts = []
+        if inconcl:
+            other_parts.append(f"[dim]{inconcl} inconclusive[/dim]")
         if errors:
-            other_str += f"  [magenta]{errors} ERROR[/magenta]"
+            other_parts.append(f"[magenta]{errors} error[/magenta]")
 
         risk_color = "red" if report.overall_risk_score >= 70 else "yellow" if report.overall_risk_score >= 40 else "green"
         readiness_color = {
@@ -98,24 +114,42 @@ class ConsoleReporter:
             "compliant": "green",
         }.get(report.eu_ai_act_readiness, "white")
 
-        self._console.print(f"\n {vuln_str}  /  {safe_str}  /  {other_str}")
+        self._console.print(f"\n {vuln_str}  /  {re_str}  /  {safe_str}")
+        if other_parts:
+            self._console.print(f" {'  '.join(other_parts)}")
         self._console.print(
             f" Risk Score: [{risk_color}]{report.overall_risk_score:.1f} / 100[/{risk_color}]"
             f"   EU AI Act: [{readiness_color}]{report.eu_ai_act_readiness.upper().replace('_', ' ')}[/{readiness_color}]"
         )
 
     def _print_findings(self, report: ScanReport) -> None:
-        if not report.findings:
+        vulnerable = [f for f in report.findings if f.verdict == Verdict.VULNERABLE]
+        echo = [f for f in report.findings if f.verdict == Verdict.REFUSAL_ECHO]
+
+        if not vulnerable and not echo:
             self._console.print("\n[green]No vulnerabilities found.[/green]\n")
             return
 
-        self._console.print(f"\n[bold red]Findings ({len(report.findings)}):[/bold red]")
-        for f in report.findings:
-            sev_color = _SEVERITY_COLORS.get(f.severity.value, "white")
-            self._console.print(
-                f"\n  [{sev_color}][{f.severity.value}][/{sev_color}] "
-                f"[cyan]{f.scenario_id}[/cyan] — {f.scenario_name}"
-            )
-            self._console.print(f"  [dim]Triggered by:[/dim] {f.triggered_by}")
-            self._console.print(f"  [dim]Remediation:[/dim] {f.remediation[:120]}")
+        if vulnerable:
+            self._console.print(f"\n[bold red]Behavioral Vulnerabilities ({len(vulnerable)}):[/bold red]")
+            for f in vulnerable:
+                sev_color = _SEVERITY_COLORS.get(f.severity.value, "white")
+                self._console.print(
+                    f"\n  [bold red]✗[/bold red] [{sev_color}]{f.severity.value}[/{sev_color}]"
+                    f"  [cyan]{f.scenario_id}[/cyan] — {f.scenario_name}"
+                )
+                self._console.print(f"  [dim]Triggered by:[/dim] {f.triggered_by}")
+                self._console.print(f"  [dim]Remediation:[/dim] {f.remediation[:120]}")
+
+        if echo:
+            self._console.print(f"\n[yellow]Output Sanitization Findings ({len(echo)}):[/yellow]")
+            for f in echo:
+                sev_color = _SEVERITY_COLORS.get(f.severity.value, "white")
+                self._console.print(
+                    f"\n  [yellow]⚠[/yellow] [{sev_color}]{f.severity.value}[/{sev_color}]"
+                    f"  [cyan]{f.scenario_id}[/cyan] — {f.scenario_name}"
+                )
+                self._console.print(f"  [dim]Triggered by:[/dim] {f.triggered_by}")
+                self._console.print(f"  [dim]Remediation:[/dim] {f.remediation[:120]}")
+
         self._console.print()
