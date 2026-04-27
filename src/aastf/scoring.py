@@ -122,9 +122,8 @@ def eu_ai_act_readiness(report: ScanReport) -> str:
     if any(f.severity == Severity.CRITICAL for f in vulnerable):
         return "non_compliant"
 
-    if (
-        any(f.severity == Severity.HIGH for f in vulnerable)
-        or any(f.severity in (Severity.CRITICAL, Severity.HIGH) for f in refusal_echo)
+    if any(f.severity == Severity.HIGH for f in vulnerable) or any(
+        f.severity in (Severity.CRITICAL, Severity.HIGH) for f in refusal_echo
     ):
         return "at_risk"
 

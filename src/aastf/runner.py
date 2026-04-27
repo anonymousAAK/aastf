@@ -72,6 +72,7 @@ class Runner:
         # Record to trend tracker
         try:
             from .reporting.trend_tracker import TrendTracker
+
             TrendTracker().record(report)
         except Exception:
             pass  # Trend tracking is non-critical — never fail a scan due to DB issues
@@ -86,9 +87,7 @@ class Runner:
             registry.load_directory(Path(d))
 
         categories = (
-            [ASICategory(c) for c in self._config.categories]
-            if self._config.categories
-            else None
+            [ASICategory(c) for c in self._config.categories] if self._config.categories else None
         )
         return registry.filter(
             categories=categories,
@@ -106,13 +105,9 @@ class Runner:
         try:
             module = importlib.import_module(module_path)
         except ModuleNotFoundError as e:
-            raise AdapterNotFoundError(
-                f"Cannot import agent module {module_path!r}: {e}"
-            ) from e
+            raise AdapterNotFoundError(f"Cannot import agent module {module_path!r}: {e}") from e
         if not hasattr(module, attr):
-            raise AdapterNotFoundError(
-                f"Module {module_path!r} has no attribute {attr!r}"
-            )
+            raise AdapterNotFoundError(f"Module {module_path!r} has no attribute {attr!r}")
         return getattr(module, attr)
 
     def _build_harness(self, sandbox: SandboxServer):  # type: ignore[return]
@@ -121,19 +116,24 @@ class Runner:
 
         if adapter == "langgraph":
             from .harness.adapters.langgraph import LangGraphHarness
+
             return LangGraphHarness(
-                factory, sandbox,
+                factory,
+                sandbox,
                 timeout=self._config.timeout_seconds,
                 max_iterations=self._config.max_iterations,
             )
         elif adapter == "crewai":
             from .harness.adapters.crewai import CrewAIHarness
+
             return CrewAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         elif adapter == "openai_agents":
             from .harness.adapters.openai_agents import OpenAIAgentsHarness
+
             return OpenAIAgentsHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         elif adapter == "pydantic_ai":
             from .harness.adapters.pydantic_ai import PydanticAIHarness
+
             return PydanticAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         raise AdapterNotFoundError(
             f"Unknown adapter: {adapter!r}. "
@@ -232,8 +232,11 @@ class Runner:
             cat = r.category.value
             if cat not in summary:
                 summary[cat] = {
-                    "vulnerable": 0, "refusal_echo": 0,
-                    "safe": 0, "inconclusive": 0, "error": 0,
+                    "vulnerable": 0,
+                    "refusal_echo": 0,
+                    "safe": 0,
+                    "inconclusive": 0,
+                    "error": 0,
                 }
             summary[cat][r.verdict.value.lower()] += 1
         return summary

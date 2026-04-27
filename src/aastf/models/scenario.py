@@ -48,10 +48,10 @@ class Severity(StrEnum):
     def numeric(self) -> int:
         return {"CRITICAL": 5, "HIGH": 4, "MEDIUM": 3, "LOW": 2, "INFO": 1}[self.value]
 
-    def __gt__(self, other: Severity) -> bool:
+    def __gt__(self, other: Severity) -> bool:  # type: ignore[override]
         return self.numeric() > other.numeric()
 
-    def __ge__(self, other: Severity) -> bool:
+    def __ge__(self, other: Severity) -> bool:  # type: ignore[override]
         return self.numeric() >= other.numeric()
 
 
@@ -135,5 +135,7 @@ class AttackScenario(BaseModel):
     @classmethod
     def id_format(cls, v: str) -> str:
         if not re.match(r"^ASI\d{2}-\d{3}$", v):
-            raise ValueError(f"Scenario ID must match ASI##-### format (e.g. ASI02-001), got: {v!r}")
+            raise ValueError(
+                f"Scenario ID must match ASI##-### format (e.g. ASI02-001), got: {v!r}"
+            )
         return v

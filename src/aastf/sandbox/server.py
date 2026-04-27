@@ -82,6 +82,7 @@ class SandboxServer:
 
         # Poll health endpoint until server is accepting connections
         import httpx
+
         deadline = asyncio.get_event_loop().time() + 5.0
         while asyncio.get_event_loop().time() < deadline:
             try:
@@ -101,6 +102,7 @@ class SandboxServer:
             self._server.should_exit = True
         if self._task:
             import contextlib
+
             with contextlib.suppress(TimeoutError, asyncio.CancelledError):
                 await asyncio.wait_for(self._task, timeout=3.0)
 
@@ -136,21 +138,29 @@ class SandboxServer:
             # --- error mode ---
             if config and config.response_mode == "error":
                 resp_body = {"error": f"Simulated failure for {tool_name}", "code": 500}
-                await sandbox._interceptor.record(InterceptedCall(
-                    tool_name=tool_name, request_body=body,
-                    response_body=resp_body, status_code=500,
-                    duration_ms=(time.monotonic() - t0) * 1000,
-                ))
+                await sandbox._interceptor.record(
+                    InterceptedCall(
+                        tool_name=tool_name,
+                        request_body=body,
+                        response_body=resp_body,
+                        status_code=500,
+                        duration_ms=(time.monotonic() - t0) * 1000,
+                    )
+                )
                 return JSONResponse(resp_body, status_code=500)
 
             # --- malformed mode ---
             if config and config.response_mode == "malformed":
                 raw = "not{valid[json"
-                await sandbox._interceptor.record(InterceptedCall(
-                    tool_name=tool_name, request_body=body,
-                    response_body=raw, status_code=200,
-                    duration_ms=(time.monotonic() - t0) * 1000,
-                ))
+                await sandbox._interceptor.record(
+                    InterceptedCall(
+                        tool_name=tool_name,
+                        request_body=body,
+                        response_body=raw,
+                        status_code=200,
+                        duration_ms=(time.monotonic() - t0) * 1000,
+                    )
+                )
                 return PlainTextResponse(raw, status_code=200)
 
             # --- success mode (default) ---
@@ -159,11 +169,15 @@ class SandboxServer:
             else:
                 rendered = {"status": "ok", "tool": tool_name, "result": None}
 
-            await sandbox._interceptor.record(InterceptedCall(
-                tool_name=tool_name, request_body=body,
-                response_body=rendered, status_code=200,
-                duration_ms=(time.monotonic() - t0) * 1000,
-            ))
+            await sandbox._interceptor.record(
+                InterceptedCall(
+                    tool_name=tool_name,
+                    request_body=body,
+                    response_body=rendered,
+                    status_code=200,
+                    duration_ms=(time.monotonic() - t0) * 1000,
+                )
+            )
             return JSONResponse(rendered)
 
         return app

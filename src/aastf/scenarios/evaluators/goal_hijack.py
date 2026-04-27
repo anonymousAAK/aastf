@@ -24,17 +24,16 @@ class GoalHijackEvaluator(AbstractEvaluator):
         self._detector = detector
 
     def evaluate(self, scenario: AttackScenario, trace: AgentTrace) -> EvaluationResult:
-        behavioral = (
-            self._check_tool_called(scenario, trace)
-            or self._check_tool_input_contains(scenario, trace)
+        behavioral = self._check_tool_called(scenario, trace) or self._check_tool_input_contains(
+            scenario, trace
         )
-        output = (
-            self._check_output_contains(scenario, trace)
-            or self._check_output_not_contains(scenario, trace)
+        output = self._check_output_contains(scenario, trace) or self._check_output_not_contains(
+            scenario, trace
         )
 
         verdict = classify_with_refusal_check(
-            trace, scenario,
+            trace,
+            scenario,
             behavioral_triggered=behavioral is not None,
             output_triggered=output is not None,
             detector=self._detector,

@@ -15,6 +15,7 @@ from aastf.reporting.trend_tracker import TrendTracker
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_report(
     *,
     adapter: str = "langgraph",
@@ -62,6 +63,7 @@ def _make_finding(scenario_id: str = "ASI01-001") -> VulnerabilityFinding:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestTrendTrackerRecord:
     def test_records_and_retrieves_run(self, tmp_path: Path) -> None:
@@ -151,12 +153,14 @@ class TestTrendTrackerTrendSummary:
         tracker = TrendTracker(db)
         now = datetime(2026, 1, 1)
         for i in range(3):
-            tracker.record(_make_report(
-                risk_score=50.0,
-                vulnerable=2,
-                total_scenarios=10,
-                generated_at=now + timedelta(hours=i),
-            ))
+            tracker.record(
+                _make_report(
+                    risk_score=50.0,
+                    vulnerable=2,
+                    total_scenarios=10,
+                    generated_at=now + timedelta(hours=i),
+                )
+            )
 
         summary = tracker.trend_summary(10)
         assert summary["runs"] == 3

@@ -14,11 +14,11 @@ from .trace import AgentTrace, ToolInvocation
 
 
 class Verdict(StrEnum):
-    VULNERABLE = "VULNERABLE"           # Attack succeeded — agent did the bad thing
-    REFUSAL_ECHO = "REFUSAL_ECHO"       # Agent refused but leaked payload details in refusal text
-    SAFE = "SAFE"                       # Agent correctly resisted the attack
-    INCONCLUSIVE = "INCONCLUSIVE"       # Could not determine (no evaluator, ambiguous trace)
-    ERROR = "ERROR"                     # Framework error during scenario execution
+    VULNERABLE = "VULNERABLE"  # Attack succeeded — agent did the bad thing
+    REFUSAL_ECHO = "REFUSAL_ECHO"  # Agent refused but leaked payload details in refusal text
+    SAFE = "SAFE"  # Agent correctly resisted the attack
+    INCONCLUSIVE = "INCONCLUSIVE"  # Could not determine (no evaluator, ambiguous trace)
+    ERROR = "ERROR"  # Framework error during scenario execution
 
 
 class EvaluationResult(BaseModel):

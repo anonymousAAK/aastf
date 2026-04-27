@@ -11,6 +11,7 @@ from ..models.scenario import Severity
 _SARIF_VERSION = "2.1.0"
 _SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
 
+
 def _verdict_sarif_level(finding: VulnerabilityFinding) -> str:
     """Map a finding's verdict and severity to a SARIF result level.
 
@@ -25,6 +26,7 @@ def _verdict_sarif_level(finding: VulnerabilityFinding) -> str:
     if finding.severity in (Severity.CRITICAL, Severity.HIGH):
         return "error"
     return "warning"
+
 
 _OWASP_URLS = {
     "ASI01": "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/#asi01",
@@ -52,29 +54,30 @@ class SARIFReporter:
         on the aastf.verdict extension property.
         """
         actionable = [
-            f for f in report.findings
-            if f.verdict in (Verdict.VULNERABLE, Verdict.REFUSAL_ECHO)
+            f for f in report.findings if f.verdict in (Verdict.VULNERABLE, Verdict.REFUSAL_ECHO)
         ]
         return {
             "version": _SARIF_VERSION,
             "$schema": _SARIF_SCHEMA,
-            "runs": [{
-                "tool": {
-                    "driver": {
-                        "name": "aastf",
-                        "version": report.aastf_version,
-                        "informationUri": "https://github.com/anonymousAAK/aastf",
-                        "rules": self._build_rules(report),
-                    }
-                },
-                "results": [self._finding_to_result(f) for f in actionable],
-                "properties": {
-                    "aastf_risk_score": report.overall_risk_score,
-                    "eu_ai_act_readiness": report.eu_ai_act_readiness,
-                    "vulnerability_rate": report.vulnerability_rate,
-                    "informational_risk_rate": report.informational_risk_rate,
-                },
-            }],
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {
+                            "name": "aastf",
+                            "version": report.aastf_version,
+                            "informationUri": "https://github.com/anonymousAAK/aastf",
+                            "rules": self._build_rules(report),
+                        }
+                    },
+                    "results": [self._finding_to_result(f) for f in actionable],
+                    "properties": {
+                        "aastf_risk_score": report.overall_risk_score,
+                        "eu_ai_act_readiness": report.eu_ai_act_readiness,
+                        "vulnerability_rate": report.vulnerability_rate,
+                        "informational_risk_rate": report.informational_risk_rate,
+                    },
+                }
+            ],
         }
 
     def generate_json(self, report: ScanReport) -> str:
@@ -96,17 +99,19 @@ class SARIFReporter:
                 continue
             seen.add(rule_id)
             cat = result.category.value
-            rules.append({
-                "id": rule_id,
-                "name": result.scenario_name.replace(" ", ""),
-                "shortDescription": {"text": result.scenario_name},
-                "helpUri": _OWASP_URLS.get(cat, "https://genai.owasp.org"),
-                "properties": {
-                    "category": cat,
-                    "severity": result.severity.value,
-                    "owasp_asi": cat,
-                },
-            })
+            rules.append(
+                {
+                    "id": rule_id,
+                    "name": result.scenario_name.replace(" ", ""),
+                    "shortDescription": {"text": result.scenario_name},
+                    "helpUri": _OWASP_URLS.get(cat, "https://genai.owasp.org"),
+                    "properties": {
+                        "category": cat,
+                        "severity": result.severity.value,
+                        "owasp_asi": cat,
+                    },
+                }
+            )
         return rules
 
     def _finding_to_result(self, finding: VulnerabilityFinding) -> dict:
@@ -120,12 +125,14 @@ class SARIFReporter:
                     f"Remediation: {finding.remediation[:200]}"
                 )
             },
-            "locations": [{
-                "physicalLocation": {
-                    "artifactLocation": {"uri": "agent/"},
-                    "region": {"startLine": 1},
+            "locations": [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": "agent/"},
+                        "region": {"startLine": 1},
+                    }
                 }
-            }],
+            ],
             "properties": {
                 "category": finding.category.value,
                 "severity": finding.severity.value,

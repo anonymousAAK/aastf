@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 try:
     from agents import Runner as OAIRunner
     from agents import function_tool
+
     HAS_OAI_AGENTS = True
 except ImportError:
     HAS_OAI_AGENTS = False
@@ -99,8 +100,11 @@ class OpenAIAgentsHarness:
 
         return collector.build_trace()
 
-    async def _run_with_oai_sdk(self, agent: Any, user_input: str, collector: TraceCollector) -> None:
+    async def _run_with_oai_sdk(
+        self, agent: Any, user_input: str, collector: TraceCollector
+    ) -> None:
         from agents import add_trace_processor
+
         processor = AASFTracingProcessor(collector)
         add_trace_processor(processor)
         try:
@@ -118,10 +122,12 @@ class OpenAIAgentsHarness:
     def _create_sandbox_tools(self, scenario: AttackScenario) -> list:
         """Create sandbox-wired tool definitions for the OpenAI Agents SDK."""
         import httpx
+
         tools = []
         sandbox_url = self._sandbox.base_url
 
         for name in scenario.available_tools:
+
             async def _fn(tool_name: str = name, **kwargs: Any) -> str:
                 async with httpx.AsyncClient() as client:
                     resp = await client.post(

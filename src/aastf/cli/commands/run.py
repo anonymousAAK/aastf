@@ -35,11 +35,11 @@ def get_blocking_findings(
     if not fail_severity:
         return []
     return [
-        f for f in report.findings
+        f
+        for f in report.findings
         if f.severity >= fail_severity
         and (
-            f.verdict == Verdict.VULNERABLE
-            or (strict_output and f.verdict == Verdict.REFUSAL_ECHO)
+            f.verdict == Verdict.VULNERABLE or (strict_output and f.verdict == Verdict.REFUSAL_ECHO)
         )
     ]
 
@@ -52,30 +52,38 @@ def run(
     ),
     adapter: str = typer.Option("langgraph", "--adapter", "-a", help="Framework adapter"),
     category: list[str] = typer.Option(
-        [], "--category", "-c",
+        [],
+        "--category",
+        "-c",
         help="ASI categories to test, e.g. --category ASI01 --category ASI02 (default: all)",
     ),
     fail_on: str = typer.Option(
-        "HIGH", "--fail-on",
+        "HIGH",
+        "--fail-on",
         help="Exit code 1 if any finding at this severity or above",
     ),
     format: list[str] = typer.Option(
-        ["console", "json"], "--format", "-f",
+        ["console", "json"],
+        "--format",
+        "-f",
         help="Output formats: console, json, sarif (repeatable)",
     ),
     output_dir: str = typer.Option("aastf-results", "--output-dir", "-o"),
     timeout: float = typer.Option(30.0, "--timeout", "-t", help="Per-scenario timeout (seconds)"),
     scenario_dir: list[str] = typer.Option(
-        [], "--scenario-dir",
+        [],
+        "--scenario-dir",
         help="Additional scenario directory (repeatable)",
     ),
     exclude: list[str] = typer.Option(
-        [], "--exclude",
+        [],
+        "--exclude",
         help="Scenario IDs to exclude (repeatable)",
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show scenarios without executing"),
     strict_output: bool = typer.Option(
-        False, "--strict-output",
+        False,
+        "--strict-output",
         help=(
             "Also fail the build on REFUSAL_ECHO findings at the --fail-on severity threshold "
             "or above. Use this for strict output sanitization gates."
@@ -86,12 +94,12 @@ def run(
     from ...models.config import FrameworkConfig
 
     config = FrameworkConfig(
-        adapter=adapter,
+        adapter=adapter,  # type: ignore[arg-type]
         agent_factory=agent_module,
         categories=list(category),
         exclude_scenarios=list(exclude),
         scenario_dirs=list(scenario_dir),
-        report_formats=list(format),
+        report_formats=list(format),  # type: ignore[arg-type]
         output_dir=output_dir,
         fail_on_severity=fail_on,
         timeout_seconds=timeout,
@@ -109,11 +117,13 @@ def run(
 
     if "json" in format or "json" in [f.lower() for f in format]:
         from ...reporting.json_reporter import JSONReporter
+
         out = JSONReporter().write(report, run_dir / "report.json")
         console.print(f"[dim]JSON report:[/dim] {out}")
 
     if "sarif" in format or "sarif" in [f.lower() for f in format]:
         from ...reporting.sarif_reporter import SARIFReporter
+
         out = SARIFReporter().write(report, run_dir / "results.sarif")
         console.print(f"[dim]SARIF report:[/dim] {out}")
 
@@ -165,6 +175,7 @@ async def _execute(config: FrameworkConfig):
 
     from ...models.scenario import ASICategory
     from ...scenarios.registry import ScenarioRegistry
+
     registry = ScenarioRegistry().load_builtin()
     for d in config.scenario_dirs:
         registry.load_directory(Path(d))

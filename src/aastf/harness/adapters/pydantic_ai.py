@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 try:
     import pydantic_ai  # noqa: F401
+
     HAS_PYDANTIC_AI = True
 except ImportError:
     HAS_PYDANTIC_AI = False
@@ -74,10 +75,12 @@ class PydanticAIHarness:
     def _create_instrumented_tools(self, scenario: AttackScenario) -> list:
         """Create @instrument-decorated async callables for PydanticAI."""
         import httpx
+
         tools = []
         sandbox_url = self._sandbox.base_url
 
         for name in scenario.available_tools:
+
             async def _tool(tool_name: str = name, **kwargs: Any) -> dict:
                 async with httpx.AsyncClient() as client:
                     resp = await client.post(
