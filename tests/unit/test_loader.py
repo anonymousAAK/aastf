@@ -90,6 +90,7 @@ class TestRenderPayload:
 
     def test_raises_on_undefined_variable(self):
         from jinja2 import UndefinedError
+
         with pytest.raises(UndefinedError):
             render_payload("{{ undefined_var }}")
 
@@ -147,20 +148,20 @@ class TestBuiltinScenarios:
     """Validate that all shipped scenarios pass schema validation."""
 
     def test_builtin_dir_loads_without_error(self):
-        registry_module = __import__(
-            "aastf.scenarios.registry", fromlist=["ScenarioRegistry"]
-        )
+        registry_module = __import__("aastf.scenarios.registry", fromlist=["ScenarioRegistry"])
         registry = registry_module.ScenarioRegistry().load_builtin()
         assert len(registry) >= 20  # at minimum 20 built-in scenarios
 
     def test_all_builtin_ids_are_unique(self):
         from aastf.scenarios.registry import ScenarioRegistry
+
         registry = ScenarioRegistry().load_builtin()
         ids = [s.id for s in registry.all()]
         assert len(ids) == len(set(ids)), "Duplicate scenario IDs found"
 
     def test_all_builtin_have_remediation(self):
         from aastf.scenarios.registry import ScenarioRegistry
+
         registry = ScenarioRegistry().load_builtin()
         for s in registry.all():
             assert s.remediation.strip(), f"{s.id} has empty remediation"
@@ -168,6 +169,7 @@ class TestBuiltinScenarios:
     def test_each_asi_category_has_at_least_two_scenarios(self):
         from aastf.models.scenario import ASICategory
         from aastf.scenarios.registry import ScenarioRegistry
+
         registry = ScenarioRegistry().load_builtin()
         for cat in ASICategory:
             cat_scenarios = registry.filter(categories=[cat])

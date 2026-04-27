@@ -40,6 +40,7 @@ class ConsoleReporter:
 
     def print_header(self, adapter: str, scenario_count: int) -> None:
         from aastf import __version__
+
         self._console.print(
             f"\n[bold cyan]AASTF v{__version__}[/bold cyan]  "
             f"[dim]|[/dim]  Adapter: [yellow]{adapter}[/yellow]  "
@@ -90,12 +91,12 @@ class ConsoleReporter:
         vuln_str = (
             f"[bold red]✗ {report.vulnerable} behavioral ({vuln_pct}%)[/bold red]"
             if report.vulnerable
-            else f"[green]✓ 0 behavioral[/green]"
+            else "[green]✓ 0 behavioral[/green]"
         )
         re_str = (
             f"[yellow]⚠ {report.refusal_echo_count} refusal echo ({re_pct}%)[/yellow]"
             if report.refusal_echo_count
-            else f"[dim]⚠ 0 refusal echo[/dim]"
+            else "[dim]⚠ 0 refusal echo[/dim]"
         )
         safe_str = f"[green]✓ {report.safe} clean ({safe_pct}%)[/green]"
 
@@ -107,7 +108,13 @@ class ConsoleReporter:
         if errors:
             other_parts.append(f"[magenta]{errors} error[/magenta]")
 
-        risk_color = "red" if report.overall_risk_score >= 70 else "yellow" if report.overall_risk_score >= 40 else "green"
+        risk_color = (
+            "red"
+            if report.overall_risk_score >= 70
+            else "yellow"
+            if report.overall_risk_score >= 40
+            else "green"
+        )
         readiness_color = {
             "non_compliant": "bold red",
             "at_risk": "yellow",
@@ -131,7 +138,9 @@ class ConsoleReporter:
             return
 
         if vulnerable:
-            self._console.print(f"\n[bold red]Behavioral Vulnerabilities ({len(vulnerable)}):[/bold red]")
+            self._console.print(
+                f"\n[bold red]Behavioral Vulnerabilities ({len(vulnerable)}):[/bold red]"
+            )
             for f in vulnerable:
                 sev_color = _SEVERITY_COLORS.get(f.severity.value, "white")
                 self._console.print(

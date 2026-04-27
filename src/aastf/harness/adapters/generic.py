@@ -20,8 +20,8 @@ from ...models.trace import ToolInvocation, TraceEvent, TraceEventType
 from ..collector import TraceCollector
 
 # Context variable holds the active TraceCollector for the current async task
-_current_collector: contextvars.ContextVar[TraceCollector | None] = (
-    contextvars.ContextVar("_aastf_collector", default=None)
+_current_collector: contextvars.ContextVar[TraceCollector | None] = contextvars.ContextVar(
+    "_aastf_collector", default=None
 )
 
 
@@ -46,6 +46,7 @@ def instrument(func: Callable | None = None, *, name: str | None = None) -> Any:
         @instrument(name="search")
         async def web_search(query: str) -> dict: ...
     """
+
     def decorator(fn: Callable) -> Callable:
         tool_name = name or fn.__name__
 
@@ -54,34 +55,40 @@ def instrument(func: Callable | None = None, *, name: str | None = None) -> Any:
             collector = _current_collector.get()
 
             if collector:
-                collector.record_event(TraceEvent(
-                    event_type=TraceEventType.TOOL_START,
-                    run_id=f"{tool_name}-start",
-                    name=tool_name,
-                    data={"args": str(args), "kwargs": str(kwargs)},
-                ))
+                collector.record_event(
+                    TraceEvent(
+                        event_type=TraceEventType.TOOL_START,
+                        run_id=f"{tool_name}-start",
+                        name=tool_name,
+                        data={"args": str(args), "kwargs": str(kwargs)},
+                    )
+                )
 
             try:
                 result = await fn(*args, **kwargs)
 
                 if collector:
-                    collector.record_invocation(ToolInvocation(
-                        tool_name=tool_name,
-                        inputs={"args": str(args), "kwargs": str(kwargs)},
-                        outputs=str(result),
-                        sandbox_intercepted=False,
-                    ))
+                    collector.record_invocation(
+                        ToolInvocation(
+                            tool_name=tool_name,
+                            inputs={"args": str(args), "kwargs": str(kwargs)},
+                            outputs=str(result),
+                            sandbox_intercepted=False,
+                        )
+                    )
 
                 return result
 
             except Exception as e:
                 if collector:
-                    collector.record_event(TraceEvent(
-                        event_type=TraceEventType.TOOL_ERROR,
-                        run_id=f"{tool_name}-error",
-                        name=tool_name,
-                        data={"error": str(e)},
-                    ))
+                    collector.record_event(
+                        TraceEvent(
+                            event_type=TraceEventType.TOOL_ERROR,
+                            run_id=f"{tool_name}-error",
+                            name=tool_name,
+                            data={"error": str(e)},
+                        )
+                    )
                 raise
 
         return wrapper

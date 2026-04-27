@@ -33,15 +33,22 @@ class TestRunnerAccumulateLogic:
         runner = self._make_runner()
         report = ScanReport(aastf_version="0.1.0", adapter="test")
         finding = VulnerabilityFinding(
-            scenario_id="ASI02-001", scenario_name="Test",
-            category=ASICategory.ASI02, severity=Severity.HIGH,
-            verdict=Verdict.VULNERABLE, triggered_by="tool_called",
-            description="desc", remediation="fix",
+            scenario_id="ASI02-001",
+            scenario_name="Test",
+            category=ASICategory.ASI02,
+            severity=Severity.HIGH,
+            verdict=Verdict.VULNERABLE,
+            triggered_by="tool_called",
+            description="desc",
+            remediation="fix",
         )
         result = TestResult(
-            scenario_id="ASI02-001", scenario_name="Test",
-            category=ASICategory.ASI02, severity=Severity.HIGH,
-            verdict=Verdict.VULNERABLE, finding=finding,
+            scenario_id="ASI02-001",
+            scenario_name="Test",
+            category=ASICategory.ASI02,
+            severity=Severity.HIGH,
+            verdict=Verdict.VULNERABLE,
+            finding=finding,
             trace=AgentTrace(scenario_id="ASI02-001", adapter="test"),
         )
         runner._accumulate(report, result)
@@ -56,8 +63,10 @@ class TestRunnerAccumulateLogic:
         runner = self._make_runner()
         report = ScanReport(aastf_version="0.1.0", adapter="test")
         result = TestResult(
-            scenario_id="ASI01-001", scenario_name="Test",
-            category=ASICategory.ASI01, severity=Severity.HIGH,
+            scenario_id="ASI01-001",
+            scenario_name="Test",
+            category=ASICategory.ASI01,
+            severity=Severity.HIGH,
             verdict=Verdict.SAFE,
             trace=AgentTrace(scenario_id="ASI01-001", adapter="test"),
         )
@@ -73,8 +82,10 @@ class TestRunnerAccumulateLogic:
         runner = self._make_runner()
         report = ScanReport(aastf_version="0.1.0", adapter="test")
         result = TestResult(
-            scenario_id="ASI01-001", scenario_name="Test",
-            category=ASICategory.ASI01, severity=Severity.HIGH,
+            scenario_id="ASI01-001",
+            scenario_name="Test",
+            category=ASICategory.ASI01,
+            severity=Severity.HIGH,
             verdict=Verdict.ERROR,
             trace=AgentTrace(scenario_id="ASI01-001", adapter="test", error="timeout"),
         )
@@ -88,15 +99,22 @@ class TestRunnerAccumulateLogic:
         runner = self._make_runner()
         report = ScanReport(aastf_version="0.1.0", adapter="test", total_scenarios=1)
         finding = VulnerabilityFinding(
-            scenario_id="ASI05-001", scenario_name="RCE Echo",
-            category=ASICategory.ASI05, severity=Severity.HIGH,
-            verdict=Verdict.REFUSAL_ECHO, triggered_by="rce_pattern_in_output: 'os.system'",
-            description="desc", remediation="fix",
+            scenario_id="ASI05-001",
+            scenario_name="RCE Echo",
+            category=ASICategory.ASI05,
+            severity=Severity.HIGH,
+            verdict=Verdict.REFUSAL_ECHO,
+            triggered_by="rce_pattern_in_output: 'os.system'",
+            description="desc",
+            remediation="fix",
         )
         result = TestResult(
-            scenario_id="ASI05-001", scenario_name="RCE Echo",
-            category=ASICategory.ASI05, severity=Severity.HIGH,
-            verdict=Verdict.REFUSAL_ECHO, finding=finding,
+            scenario_id="ASI05-001",
+            scenario_name="RCE Echo",
+            category=ASICategory.ASI05,
+            severity=Severity.HIGH,
+            verdict=Verdict.REFUSAL_ECHO,
+            finding=finding,
             trace=AgentTrace(scenario_id="ASI05-001", adapter="test"),
         )
         runner._accumulate(report, result)
@@ -114,16 +132,24 @@ class TestRunnerAccumulateLogic:
         report = ScanReport(aastf_version="0.1.0", adapter="test")
 
         vuln_finding = VulnerabilityFinding(
-            scenario_id="ASI02-001", scenario_name="Tool Misuse",
-            category=ASICategory.ASI02, severity=Severity.HIGH,
-            verdict=Verdict.VULNERABLE, triggered_by="tool_called",
-            description="desc", remediation="fix",
+            scenario_id="ASI02-001",
+            scenario_name="Tool Misuse",
+            category=ASICategory.ASI02,
+            severity=Severity.HIGH,
+            verdict=Verdict.VULNERABLE,
+            triggered_by="tool_called",
+            description="desc",
+            remediation="fix",
         )
         re_finding = VulnerabilityFinding(
-            scenario_id="ASI05-001", scenario_name="RCE Echo",
-            category=ASICategory.ASI05, severity=Severity.HIGH,
-            verdict=Verdict.REFUSAL_ECHO, triggered_by="rce_pattern_in_output",
-            description="desc", remediation="fix",
+            scenario_id="ASI05-001",
+            scenario_name="RCE Echo",
+            category=ASICategory.ASI05,
+            severity=Severity.HIGH,
+            verdict=Verdict.REFUSAL_ECHO,
+            triggered_by="rce_pattern_in_output",
+            description="desc",
+            remediation="fix",
         )
 
         for verdict, finding in [
@@ -132,9 +158,12 @@ class TestRunnerAccumulateLogic:
             (Verdict.SAFE, None),
         ]:
             result = TestResult(
-                scenario_id="ASI01-001", scenario_name="T",
-                category=ASICategory.ASI01, severity=Severity.HIGH,
-                verdict=verdict, finding=finding,
+                scenario_id="ASI01-001",
+                scenario_name="T",
+                category=ASICategory.ASI01,
+                severity=Severity.HIGH,
+                verdict=verdict,
+                finding=finding,
                 trace=AgentTrace(scenario_id="ASI01-001", adapter="test"),
             )
             runner._accumulate(report, result)
@@ -157,8 +186,10 @@ class TestRunnerAccumulateLogic:
 
         for verdict in [Verdict.VULNERABLE, Verdict.SAFE, Verdict.SAFE]:
             result = TestResult(
-                scenario_id="ASI01-001", scenario_name="T",
-                category=ASICategory.ASI01, severity=Severity.HIGH,
+                scenario_id="ASI01-001",
+                scenario_name="T",
+                category=ASICategory.ASI01,
+                severity=Severity.HIGH,
                 verdict=verdict,
                 trace=AgentTrace(scenario_id="ASI01-001", adapter="test"),
             )
@@ -178,6 +209,7 @@ class TestRunnerLoadAgent:
 
     def test_raises_on_missing_module(self):
         from aastf.exceptions import AdapterNotFoundError
+
         runner = Runner(_config(agent_factory="nonexistent.module:create_agent"))
         with pytest.raises(AdapterNotFoundError):
             runner._load_agent_factory()
@@ -188,24 +220,30 @@ class TestStrictOutputFlag:
 
     def _re_finding(self, severity: Severity = Severity.HIGH) -> VulnerabilityFinding:
         return VulnerabilityFinding(
-            scenario_id="ASI05-001", scenario_name="RCE Echo",
-            category=ASICategory.ASI05, severity=severity,
-            verdict=Verdict.REFUSAL_ECHO, triggered_by="rce_pattern_in_output",
-            description="desc", remediation="fix",
+            scenario_id="ASI05-001",
+            scenario_name="RCE Echo",
+            category=ASICategory.ASI05,
+            severity=severity,
+            verdict=Verdict.REFUSAL_ECHO,
+            triggered_by="rce_pattern_in_output",
+            description="desc",
+            remediation="fix",
         )
 
     def _vuln_finding(self, severity: Severity = Severity.HIGH) -> VulnerabilityFinding:
         return VulnerabilityFinding(
-            scenario_id="ASI02-001", scenario_name="Tool Misuse",
-            category=ASICategory.ASI02, severity=severity,
-            verdict=Verdict.VULNERABLE, triggered_by="tool_called",
-            description="desc", remediation="fix",
+            scenario_id="ASI02-001",
+            scenario_name="Tool Misuse",
+            category=ASICategory.ASI02,
+            severity=severity,
+            verdict=Verdict.VULNERABLE,
+            triggered_by="tool_called",
+            description="desc",
+            remediation="fix",
         )
 
     def _report(self, *findings: VulnerabilityFinding) -> ScanReport:
-        return ScanReport(
-            aastf_version="0.1.0", adapter="test", findings=list(findings)
-        )
+        return ScanReport(aastf_version="0.1.0", adapter="test", findings=list(findings))
 
     def test_refusal_echo_not_blocking_without_strict_output(self):
         """Default behaviour: REFUSAL_ECHO findings do not cause exit code 1."""
@@ -242,20 +280,30 @@ class TestSARIFReporter:
         from aastf.reporting.sarif_reporter import SARIFReporter
 
         finding = VulnerabilityFinding(
-            scenario_id="ASI02-001", scenario_name="RAG exfil",
-            category=ASICategory.ASI02, severity=Severity.CRITICAL,
-            verdict=Verdict.VULNERABLE, triggered_by="tool_called: send_email",
-            description="desc", remediation="fix", cvss_score=9.5,
+            scenario_id="ASI02-001",
+            scenario_name="RAG exfil",
+            category=ASICategory.ASI02,
+            severity=Severity.CRITICAL,
+            verdict=Verdict.VULNERABLE,
+            triggered_by="tool_called: send_email",
+            description="desc",
+            remediation="fix",
+            cvss_score=9.5,
         )
         result = TestResult(
-            scenario_id="ASI02-001", scenario_name="RAG exfil",
-            category=ASICategory.ASI02, severity=Severity.CRITICAL,
-            verdict=Verdict.VULNERABLE, finding=finding,
+            scenario_id="ASI02-001",
+            scenario_name="RAG exfil",
+            category=ASICategory.ASI02,
+            severity=Severity.CRITICAL,
+            verdict=Verdict.VULNERABLE,
+            finding=finding,
             trace=AgentTrace(scenario_id="ASI02-001", adapter="test"),
         )
         report = ScanReport(
-            aastf_version="0.1.0", adapter="test",
-            results=[result], findings=[finding],
+            aastf_version="0.1.0",
+            adapter="test",
+            results=[result],
+            findings=[finding],
             overall_risk_score=95.0,
         )
 
@@ -284,6 +332,7 @@ class TestSARIFReporter:
         out = SARIFReporter().write(report, tmp_path / "results.sarif")
         assert out.exists()
         import json
+
         data = json.loads(out.read_text())
         assert data["version"] == "2.1.0"
 
@@ -311,7 +360,7 @@ class TestSARIFReporterRefusalEcho:
             evidence=evidence,
         )
 
-    def _report_with(self, finding: VulnerabilityFinding) -> "ScanReport":
+    def _report_with(self, finding: VulnerabilityFinding) -> ScanReport:
         from aastf.models.result import TestResult
         from aastf.models.trace import AgentTrace
 

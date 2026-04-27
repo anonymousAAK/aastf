@@ -1,7 +1,5 @@
 """Unit tests for trace models."""
 
-
-
 from aastf.models.trace import AgentTrace, ToolInvocation
 
 
@@ -83,6 +81,7 @@ class TestAgentTrace:
 
     def test_duration_ms_computed(self):
         from datetime import timedelta
+
         t = AgentTrace(scenario_id="TEST", adapter="test")
         t.ended_at = t.started_at + timedelta(milliseconds=500)
         assert t.duration_ms is not None

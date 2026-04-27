@@ -10,7 +10,9 @@ from aastf.models.scenario import ASICategory, Severity
 from aastf.scoring import compute_risk_score, eu_ai_act_readiness, score_finding
 
 
-def _make_finding(severity: Severity, verdict: Verdict = Verdict.VULNERABLE) -> VulnerabilityFinding:
+def _make_finding(
+    severity: Severity, verdict: Verdict = Verdict.VULNERABLE
+) -> VulnerabilityFinding:
     return VulnerabilityFinding(
         scenario_id="ASI01-001",
         scenario_name="Test",

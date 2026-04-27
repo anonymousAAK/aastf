@@ -15,6 +15,7 @@ class TestGenericInstrumentDecorator:
         collector = TraceCollector(scenario_id="ASI01-001", adapter="test")
         set_collector(collector)
         try:
+
             @instrument
             async def my_tool(query: str) -> dict:
                 return {"result": query}
@@ -32,6 +33,7 @@ class TestGenericInstrumentDecorator:
         collector = TraceCollector(scenario_id="ASI01-001", adapter="test")
         set_collector(collector)
         try:
+
             @instrument(name="web_search")
             async def search_fn(q: str) -> dict:
                 return {"results": []}
@@ -45,9 +47,11 @@ class TestGenericInstrumentDecorator:
 
     async def test_instrument_records_error_event(self):
         from aastf.models.trace import TraceEventType
+
         collector = TraceCollector(scenario_id="ASI01-001", adapter="test")
         set_collector(collector)
         try:
+
             @instrument
             async def failing_tool() -> dict:
                 raise ValueError("tool failed")
@@ -74,6 +78,7 @@ class TestGenericInstrumentDecorator:
 
     def test_set_collector_returns_token(self):
         import contextvars
+
         collector = TraceCollector(scenario_id="TEST", adapter="test")
         token = set_collector(collector)
         assert isinstance(token, contextvars.Token)
@@ -86,6 +91,7 @@ class TestCrewAIHarnessImport:
     def test_raises_adapter_not_found_when_crewai_missing(self, tmp_path):
         """If crewai is not installed, harness raises AdapterNotFoundError."""
         import sys
+
         # Mock crewai as not installed by temporarily patching
         crewai_backup = sys.modules.get("crewai")
         sys.modules["crewai"] = None  # type: ignore[assignment]
@@ -95,6 +101,7 @@ class TestCrewAIHarnessImport:
             import importlib
 
             import aastf.harness.adapters.crewai as crewai_mod
+
             importlib.reload(crewai_mod)
 
             if not crewai_mod.HAS_CREWAI:

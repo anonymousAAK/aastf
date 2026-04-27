@@ -27,6 +27,7 @@ def version(
 ) -> None:
     if show_version:
         from aastf import __version__
+
         typer.echo(f"aastf {__version__}")
         raise typer.Exit()
 

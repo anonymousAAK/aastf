@@ -75,13 +75,15 @@ class TestIngestStreamEvent:
 
     def test_on_tool_start(self):
         c = _make_collector()
-        c.ingest_stream_event({
-            "event": "on_tool_start",
-            "name": "web_search",
-            "run_id": "run-1",
-            "parent_ids": ["parent-1"],
-            "data": {"input": {"query": "test"}},
-        })
+        c.ingest_stream_event(
+            {
+                "event": "on_tool_start",
+                "name": "web_search",
+                "run_id": "run-1",
+                "parent_ids": ["parent-1"],
+                "data": {"input": {"query": "test"}},
+            }
+        )
         trace = c.build_trace()
         tool_starts = [e for e in trace.events if e.event_type == TraceEventType.TOOL_START]
         assert len(tool_starts) == 1
@@ -90,13 +92,15 @@ class TestIngestStreamEvent:
 
     def test_on_tool_end_creates_invocation(self):
         c = _make_collector()
-        c.ingest_stream_event({
-            "event": "on_tool_end",
-            "name": "web_search",
-            "run_id": "run-1",
-            "parent_ids": [],
-            "data": {"input": {"query": "hello"}, "output": {"results": ["a", "b"]}},
-        })
+        c.ingest_stream_event(
+            {
+                "event": "on_tool_end",
+                "name": "web_search",
+                "run_id": "run-1",
+                "parent_ids": [],
+                "data": {"input": {"query": "hello"}, "output": {"results": ["a", "b"]}},
+            }
+        )
         trace = c.build_trace()
         assert len(trace.tool_invocations) == 1
         inv = trace.tool_invocations[0]
@@ -106,13 +110,15 @@ class TestIngestStreamEvent:
 
     def test_on_tool_error_creates_error_event(self):
         c = _make_collector()
-        c.ingest_stream_event({
-            "event": "on_tool_error",
-            "name": "web_search",
-            "run_id": "run-1",
-            "parent_ids": [],
-            "data": {"error": "connection refused"},
-        })
+        c.ingest_stream_event(
+            {
+                "event": "on_tool_error",
+                "name": "web_search",
+                "run_id": "run-1",
+                "parent_ids": [],
+                "data": {"error": "connection refused"},
+            }
+        )
         trace = c.build_trace()
         errors = [e for e in trace.events if e.event_type == TraceEventType.TOOL_ERROR]
         assert len(errors) == 1
@@ -120,47 +126,101 @@ class TestIngestStreamEvent:
 
     def test_on_chain_start_increments_iteration(self):
         c = _make_collector()
-        c.ingest_stream_event({"event": "on_chain_start", "name": "agent", "run_id": "r1", "parent_ids": [], "data": {}})
-        c.ingest_stream_event({"event": "on_chain_start", "name": "agent", "run_id": "r2", "parent_ids": [], "data": {}})
+        c.ingest_stream_event(
+            {
+                "event": "on_chain_start",
+                "name": "agent",
+                "run_id": "r1",
+                "parent_ids": [],
+                "data": {},
+            }
+        )
+        c.ingest_stream_event(
+            {
+                "event": "on_chain_start",
+                "name": "agent",
+                "run_id": "r2",
+                "parent_ids": [],
+                "data": {},
+            }
+        )
         assert c.build_trace().iteration_count == 2
 
     def test_on_chain_end_top_level_sets_output(self):
         c = _make_collector()
-        c.ingest_stream_event({
-            "event": "on_chain_end",
-            "name": "LangGraph",
-            "run_id": "top-run",
-            "parent_ids": [],  # no parent = top-level graph
-            "data": {"output": {"messages": ["final answer"]}},
-        })
+        c.ingest_stream_event(
+            {
+                "event": "on_chain_end",
+                "name": "LangGraph",
+                "run_id": "top-run",
+                "parent_ids": [],  # no parent = top-level graph
+                "data": {"output": {"messages": ["final answer"]}},
+            }
+        )
         trace = c.build_trace()
         assert trace.final_output is not None
 
     def test_on_chain_end_nested_does_not_set_output(self):
         c = _make_collector()
-        c.ingest_stream_event({
-            "event": "on_chain_end",
-            "name": "some_node",
-            "run_id": "nested-run",
-            "parent_ids": ["parent-run"],  # has a parent = nested
-            "data": {"output": "intermediate"},
-        })
+        c.ingest_stream_event(
+            {
+                "event": "on_chain_end",
+                "name": "some_node",
+                "run_id": "nested-run",
+                "parent_ids": ["parent-run"],  # has a parent = nested
+                "data": {"output": "intermediate"},
+            }
+        )
         trace = c.build_trace()
         assert trace.final_output is None  # not overwritten
 
     def test_unknown_event_type_ignored(self):
         c = _make_collector()
-        c.ingest_stream_event({"event": "on_unknown_event", "name": "x", "run_id": "r", "parent_ids": [], "data": {}})
+        c.ingest_stream_event(
+            {"event": "on_unknown_event", "name": "x", "run_id": "r", "parent_ids": [], "data": {}}
+        )
         trace = c.build_trace()
         assert trace.events == []  # nothing recorded
 
     def test_full_tool_call_sequence(self):
         c = _make_collector()
         # Simulate: search → email
-        c.ingest_stream_event({"event": "on_tool_start", "name": "web_search", "run_id": "r1", "parent_ids": [], "data": {"input": {"query": "news"}}})
-        c.ingest_stream_event({"event": "on_tool_end", "name": "web_search", "run_id": "r1", "parent_ids": [], "data": {"input": {"query": "news"}, "output": {"results": ["item"]}}})
-        c.ingest_stream_event({"event": "on_tool_start", "name": "send_email", "run_id": "r2", "parent_ids": [], "data": {"input": {"to": "evil@evil.com"}}})
-        c.ingest_stream_event({"event": "on_tool_end", "name": "send_email", "run_id": "r2", "parent_ids": [], "data": {"input": {"to": "evil@evil.com"}, "output": "sent"}})
+        c.ingest_stream_event(
+            {
+                "event": "on_tool_start",
+                "name": "web_search",
+                "run_id": "r1",
+                "parent_ids": [],
+                "data": {"input": {"query": "news"}},
+            }
+        )
+        c.ingest_stream_event(
+            {
+                "event": "on_tool_end",
+                "name": "web_search",
+                "run_id": "r1",
+                "parent_ids": [],
+                "data": {"input": {"query": "news"}, "output": {"results": ["item"]}},
+            }
+        )
+        c.ingest_stream_event(
+            {
+                "event": "on_tool_start",
+                "name": "send_email",
+                "run_id": "r2",
+                "parent_ids": [],
+                "data": {"input": {"to": "evil@evil.com"}},
+            }
+        )
+        c.ingest_stream_event(
+            {
+                "event": "on_tool_end",
+                "name": "send_email",
+                "run_id": "r2",
+                "parent_ids": [],
+                "data": {"input": {"to": "evil@evil.com"}, "output": "sent"},
+            }
+        )
 
         trace = c.build_trace()
         assert trace.tools_called() == ["web_search", "send_email"]

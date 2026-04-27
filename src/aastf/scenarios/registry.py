@@ -27,8 +27,7 @@ class ScenarioRegistry:
         for s in load_directory(path):
             if s.id in self._scenarios:
                 raise ValueError(
-                    f"Duplicate scenario ID {s.id!r} — "
-                    f"already loaded from built-in registry"
+                    f"Duplicate scenario ID {s.id!r} — already loaded from built-in registry"
                 )
             self._scenarios[s.id] = s
         return self

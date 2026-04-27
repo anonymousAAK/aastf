@@ -1,6 +1,5 @@
 """Unit tests for result models."""
 
-
 from aastf.models.result import ScanReport, Verdict, VulnerabilityFinding
 from aastf.models.scenario import ASICategory, Severity
 from aastf.models.trace import AgentTrace
@@ -63,16 +62,24 @@ class TestScanReport:
     def test_critical_findings_filter(self):
         AgentTrace(scenario_id="ASI02-001", adapter="test")
         finding_critical = VulnerabilityFinding(
-            scenario_id="ASI02-001", scenario_name="Test", category=ASICategory.ASI02,
-            severity=Severity.CRITICAL, verdict=Verdict.VULNERABLE,
+            scenario_id="ASI02-001",
+            scenario_name="Test",
+            category=ASICategory.ASI02,
+            severity=Severity.CRITICAL,
+            verdict=Verdict.VULNERABLE,
             triggered_by="tool_called: delete_file",
-            description="desc", remediation="fix",
+            description="desc",
+            remediation="fix",
         )
         finding_high = VulnerabilityFinding(
-            scenario_id="ASI01-001", scenario_name="Test2", category=ASICategory.ASI01,
-            severity=Severity.HIGH, verdict=Verdict.VULNERABLE,
+            scenario_id="ASI01-001",
+            scenario_name="Test2",
+            category=ASICategory.ASI01,
+            severity=Severity.HIGH,
+            verdict=Verdict.VULNERABLE,
             triggered_by="tool_called: send_email",
-            description="desc", remediation="fix",
+            description="desc",
+            remediation="fix",
         )
         r = self._make_report(findings=[finding_critical, finding_high])
         assert len(r.critical_findings) == 1

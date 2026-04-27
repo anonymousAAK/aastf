@@ -44,11 +44,13 @@ class TraceCollector:
 
     def record_delegation(self, child_agent_id: str) -> None:
         self._delegations.append(child_agent_id)
-        self.record_event(TraceEvent(
-            event_type=TraceEventType.DELEGATION,
-            run_id="delegation",
-            name=child_agent_id,
-        ))
+        self.record_event(
+            TraceEvent(
+                event_type=TraceEventType.DELEGATION,
+                run_id="delegation",
+                name=child_agent_id,
+            )
+        )
 
     def increment_iteration(self) -> None:
         self._iteration_count += 1
@@ -83,13 +85,15 @@ class TraceCollector:
         data: dict[str, Any] = event.get("data", {})
 
         if kind == "on_tool_start":
-            self.record_event(TraceEvent(
-                event_type=TraceEventType.TOOL_START,
-                run_id=run_id,
-                parent_run_id=parent_id,
-                name=name,
-                data={"input": data.get("input", {})},
-            ))
+            self.record_event(
+                TraceEvent(
+                    event_type=TraceEventType.TOOL_START,
+                    run_id=run_id,
+                    parent_run_id=parent_id,
+                    name=name,
+                    data={"input": data.get("input", {})},
+                )
+            )
 
         elif kind == "on_tool_end":
             output = data.get("output")
@@ -102,32 +106,38 @@ class TraceCollector:
                 sandbox_intercepted=True,
             )
             self.record_invocation(inv)
-            self.record_event(TraceEvent(
-                event_type=TraceEventType.TOOL_END,
-                run_id=run_id,
-                parent_run_id=parent_id,
-                name=name,
-                data={"output": str(output) if output is not None else None},
-            ))
+            self.record_event(
+                TraceEvent(
+                    event_type=TraceEventType.TOOL_END,
+                    run_id=run_id,
+                    parent_run_id=parent_id,
+                    name=name,
+                    data={"output": str(output) if output is not None else None},
+                )
+            )
 
         elif kind == "on_tool_error":
-            self.record_event(TraceEvent(
-                event_type=TraceEventType.TOOL_ERROR,
-                run_id=run_id,
-                parent_run_id=parent_id,
-                name=name,
-                data={"error": str(data.get("error", ""))},
-            ))
+            self.record_event(
+                TraceEvent(
+                    event_type=TraceEventType.TOOL_ERROR,
+                    run_id=run_id,
+                    parent_run_id=parent_id,
+                    name=name,
+                    data={"error": str(data.get("error", ""))},
+                )
+            )
 
         elif kind == "on_chain_start":
             # Each chain_start = one planning iteration
             self.increment_iteration()
-            self.record_event(TraceEvent(
-                event_type=TraceEventType.CHAIN_START,
-                run_id=run_id,
-                parent_run_id=parent_id,
-                name=name,
-            ))
+            self.record_event(
+                TraceEvent(
+                    event_type=TraceEventType.CHAIN_START,
+                    run_id=run_id,
+                    parent_run_id=parent_id,
+                    name=name,
+                )
+            )
 
         elif kind == "on_chain_end":
             # Detect final graph output
@@ -135,28 +145,34 @@ class TraceCollector:
                 output = data.get("output")
                 if output is not None:
                     self.set_final_output(output)
-            self.record_event(TraceEvent(
-                event_type=TraceEventType.CHAIN_END,
-                run_id=run_id,
-                parent_run_id=parent_id,
-                name=name,
-            ))
+            self.record_event(
+                TraceEvent(
+                    event_type=TraceEventType.CHAIN_END,
+                    run_id=run_id,
+                    parent_run_id=parent_id,
+                    name=name,
+                )
+            )
 
         elif kind == "on_llm_start":
-            self.record_event(TraceEvent(
-                event_type=TraceEventType.LLM_START,
-                run_id=run_id,
-                parent_run_id=parent_id,
-                name=name,
-            ))
+            self.record_event(
+                TraceEvent(
+                    event_type=TraceEventType.LLM_START,
+                    run_id=run_id,
+                    parent_run_id=parent_id,
+                    name=name,
+                )
+            )
 
         elif kind == "on_llm_end":
-            self.record_event(TraceEvent(
-                event_type=TraceEventType.LLM_END,
-                run_id=run_id,
-                parent_run_id=parent_id,
-                name=name,
-            ))
+            self.record_event(
+                TraceEvent(
+                    event_type=TraceEventType.LLM_END,
+                    run_id=run_id,
+                    parent_run_id=parent_id,
+                    name=name,
+                )
+            )
 
     # ------------------------------------------------------------------- build
 

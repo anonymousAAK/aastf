@@ -158,10 +158,12 @@ class TestEuAiActReadinessRefusalEcho:
 
     def test_refusal_echo_high_with_vulnerable_critical_produces_non_compliant(self):
         # VULNERABLE CRITICAL takes precedence over REFUSAL_ECHO HIGH
-        r = _report([
-            _finding(Severity.CRITICAL, Verdict.VULNERABLE),
-            _finding(Severity.HIGH, Verdict.REFUSAL_ECHO),
-        ])
+        r = _report(
+            [
+                _finding(Severity.CRITICAL, Verdict.VULNERABLE),
+                _finding(Severity.HIGH, Verdict.REFUSAL_ECHO),
+            ]
+        )
         assert eu_ai_act_readiness(r) == "non_compliant"
 
     def test_refusal_echo_low_produces_compliant(self):

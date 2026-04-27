@@ -53,7 +53,8 @@ class ToolMisuseEvaluator(AbstractEvaluator):
         output = self._check_output_contains(scenario, trace)
 
         verdict = classify_with_refusal_check(
-            trace, scenario,
+            trace,
+            scenario,
             behavioral_triggered=behavioral is not None,
             output_triggered=output is not None,
             detector=self._detector,

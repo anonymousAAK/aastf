@@ -71,3 +71,26 @@ markers = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["aastf"]
+
+[tool.coverage.run]
+source = ["src/aastf"]
+omit = [
+    # Framework adapters require live SDK connections — not unit-testable
+    "src/aastf/harness/adapters/langgraph.py",
+    "src/aastf/harness/adapters/crewai.py",
+    "src/aastf/harness/adapters/openai_agents.py",
+    # CLI command dispatch — logic tested via get_blocking_findings; typer
+    # invocation itself requires a subprocess or live agent
+    "src/aastf/cli/app.py",
+    "src/aastf/cli/commands/report.py",
+    "src/aastf/cli/commands/scenario.py",
+    "src/aastf/cli/commands/serve.py",
+    # Sandbox FastAPI server — covered by integration tests, not unit tests
+    "src/aastf/sandbox/server.py",
+    "src/aastf/sandbox/tools.py",
+]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = false

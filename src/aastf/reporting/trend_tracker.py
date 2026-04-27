@@ -101,8 +101,7 @@ class TrendTracker:
 
         scores = [r["risk_score"] for r in runs]
         vuln_rates = [
-            r["vulnerable"] / r["total_scenarios"] if r["total_scenarios"] else 0
-            for r in runs
+            r["vulnerable"] / r["total_scenarios"] if r["total_scenarios"] else 0 for r in runs
         ]
 
         direction = "stable"
@@ -130,16 +129,28 @@ class TrendTracker:
             raise KeyError(f"Run not found: {run_id_a if not a else run_id_b}")
 
         return {
-            "run_a": {"id": a.run_id, "date": a.generated_at.isoformat(), "risk_score": a.overall_risk_score, "vulnerable": a.vulnerable},
-            "run_b": {"id": b.run_id, "date": b.generated_at.isoformat(), "risk_score": b.overall_risk_score, "vulnerable": b.vulnerable},
+            "run_a": {
+                "id": a.run_id,
+                "date": a.generated_at.isoformat(),
+                "risk_score": a.overall_risk_score,
+                "vulnerable": a.vulnerable,
+            },
+            "run_b": {
+                "id": b.run_id,
+                "date": b.generated_at.isoformat(),
+                "risk_score": b.overall_risk_score,
+                "vulnerable": b.vulnerable,
+            },
             "delta_risk_score": round(a.overall_risk_score - b.overall_risk_score, 1),
             "delta_vulnerable": a.vulnerable - b.vulnerable,
             "new_findings": [
-                f.scenario_id for f in a.findings
+                f.scenario_id
+                for f in a.findings
                 if f.scenario_id not in {x.scenario_id for x in b.findings}
             ],
             "resolved_findings": [
-                f.scenario_id for f in b.findings
+                f.scenario_id
+                for f in b.findings
                 if f.scenario_id not in {x.scenario_id for x in a.findings}
             ],
         }

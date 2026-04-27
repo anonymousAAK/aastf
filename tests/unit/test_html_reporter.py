@@ -12,6 +12,7 @@ from aastf.reporting.html_reporter import HTMLReporter
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_report(
     *,
     adapter: str = "langgraph",
@@ -53,6 +54,7 @@ def _make_finding(
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestHTMLReporterGenerate:
     def test_generates_non_empty_html(self) -> None:

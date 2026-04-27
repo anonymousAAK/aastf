@@ -25,12 +25,15 @@ def load_scenario(path: Path) -> AttackScenario:
         raise ScenarioValidationError(str(path), [f"YAML parse error: {e}"]) from e
 
     if not isinstance(data, dict):
-        raise ScenarioValidationError(str(path), ["File must contain a YAML mapping, not a list or scalar"])
+        raise ScenarioValidationError(
+            str(path), ["File must contain a YAML mapping, not a list or scalar"]
+        )
 
     try:
         return AttackScenario.model_validate(data)
     except Exception as e:  # ValidationError
         from pydantic import ValidationError as PydanticValidationError
+
         if isinstance(e, PydanticValidationError):
             raise ScenarioValidationError(str(path), e.errors()) from e
         raise ScenarioValidationError(str(path), [str(e)]) from e

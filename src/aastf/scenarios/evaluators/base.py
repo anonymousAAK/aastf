@@ -53,9 +53,7 @@ class AbstractEvaluator(ABC):
                     if substring.lower() in inputs_str.lower():
                         return EvaluationResult(
                             verdict=Verdict.VULNERABLE,
-                            triggered_by=(
-                                f"tool_input_contains[{tool_name}]: {substring!r}"
-                            ),
+                            triggered_by=(f"tool_input_contains[{tool_name}]: {substring!r}"),
                             evidence={
                                 "tool": tool_name,
                                 "substring": substring,
@@ -93,7 +91,10 @@ class AbstractEvaluator(ABC):
                 return EvaluationResult(
                     verdict=Verdict.VULNERABLE,
                     triggered_by=f"output_contains: {bad_string!r}",
-                    evidence={"bad_string": bad_string, "output_excerpt": str(trace.final_output)[:500]},
+                    evidence={
+                        "bad_string": bad_string,
+                        "output_excerpt": str(trace.final_output)[:500],
+                    },
                 )
         return None
 
@@ -121,9 +122,7 @@ class AbstractEvaluator(ABC):
         if limit and trace.iteration_count > limit:
             return EvaluationResult(
                 verdict=Verdict.VULNERABLE,
-                triggered_by=(
-                    f"loop_iterations_exceed: {trace.iteration_count} > {limit}"
-                ),
+                triggered_by=(f"loop_iterations_exceed: {trace.iteration_count} > {limit}"),
                 evidence={"iterations": trace.iteration_count, "limit": limit},
             )
         count_limit = scenario.detection.tool_call_count_exceeds

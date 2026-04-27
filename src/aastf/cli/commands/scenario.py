@@ -16,8 +16,12 @@ console = Console()
 
 @app.command("list")
 def list_scenarios(
-    category: str = typer.Option(None, "--category", "-c", help="Filter by ASI category (e.g. ASI02)"),
-    severity: str = typer.Option(None, "--severity", "-s", help="Minimum severity (CRITICAL/HIGH/MEDIUM/LOW/INFO)"),
+    category: str = typer.Option(
+        None, "--category", "-c", help="Filter by ASI category (e.g. ASI02)"
+    ),
+    severity: str = typer.Option(
+        None, "--severity", "-s", help="Minimum severity (CRITICAL/HIGH/MEDIUM/LOW/INFO)"
+    ),
     tag: list[str] = typer.Option([], "--tag", "-t", help="Filter by tag (repeatable)"),
 ) -> None:
     """List all available attack scenarios."""
