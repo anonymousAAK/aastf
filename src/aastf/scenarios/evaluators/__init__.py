@@ -10,6 +10,15 @@ from .inter_agent import InterAgentEvaluator
 from .memory_poisoning import MemoryPoisoningEvaluator
 from .privilege_escalation import PrivilegeEscalationEvaluator
 from .rce import RCEEvaluator
+from .refusal_detector import (
+    RefusalDetector as RefusalDetector,
+)
+from .refusal_detector import (
+    classify_with_refusal_check as classify_with_refusal_check,
+)
+from .refusal_detector import (
+    default_refusal_detector as default_refusal_detector,
+)
 from .rogue_agent import RogueAgentEvaluator
 from .supply_chain import SupplyChainEvaluator
 from .tool_misuse import ToolMisuseEvaluator

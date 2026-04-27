@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 try:
     import crewai as _crewai_mod  # noqa: F401
+
     HAS_CREWAI = True
 except ImportError:
     HAS_CREWAI = False

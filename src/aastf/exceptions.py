@@ -11,8 +11,10 @@ class ScenarioValidationError(AASFError):
     def __init__(self, path: str, errors: list) -> None:
         self.path = path
         self.errors = errors
-        super().__init__(f"Invalid scenario at {path}: {len(errors)} error(s)\n" +
-                         "\n".join(str(e) for e in errors))
+        super().__init__(
+            f"Invalid scenario at {path}: {len(errors)} error(s)\n"
+            + "\n".join(str(e) for e in errors)
+        )
 
 
 class AdapterNotFoundError(AASFError):

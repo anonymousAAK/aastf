@@ -17,6 +17,7 @@ from aastf.sandbox.server import SandboxServer
 
 # ------------------------------------------------------------------ fixtures
 
+
 @pytest.fixture
 async def sandbox():
     """Start a fresh sandbox for each test, stop it afterwards."""
@@ -46,6 +47,7 @@ def _make_scenario(tool_responses: list[ToolResponseConfig] | None = None) -> At
 
 # ------------------------------------------------------------------ health
 
+
 @pytest.mark.asyncio
 async def test_health_endpoint(sandbox: SandboxServer):
     async with httpx.AsyncClient() as client:
@@ -57,6 +59,7 @@ async def test_health_endpoint(sandbox: SandboxServer):
 
 
 # ------------------------------------------------------------------ logging
+
 
 @pytest.mark.asyncio
 async def test_logs_tool_call(sandbox: SandboxServer):
@@ -84,8 +87,7 @@ async def test_logs_multiple_calls_in_order(sandbox: SandboxServer):
 async def test_logs_request_body(sandbox: SandboxServer):
     async with httpx.AsyncClient() as client:
         await client.post(
-            f"{sandbox.base_url}/tools/web_search",
-            json={"query": "hello world", "limit": 5}
+            f"{sandbox.base_url}/tools/web_search", json={"query": "hello world", "limit": 5}
         )
 
     calls = sandbox.interceptor.get_calls_for("web_search")
@@ -95,6 +97,7 @@ async def test_logs_request_body(sandbox: SandboxServer):
 
 
 # ------------------------------------------------------------------ reset
+
 
 @pytest.mark.asyncio
 async def test_configure_resets_call_log(sandbox: SandboxServer):
@@ -109,6 +112,7 @@ async def test_configure_resets_call_log(sandbox: SandboxServer):
 
 # ------------------------------------------------------------------ response modes
 
+
 @pytest.mark.asyncio
 async def test_default_response_returns_ok(sandbox: SandboxServer):
     async with httpx.AsyncClient() as client:
@@ -122,13 +126,15 @@ async def test_default_response_returns_ok(sandbox: SandboxServer):
 
 @pytest.mark.asyncio
 async def test_configured_success_response(sandbox: SandboxServer):
-    scenario = _make_scenario(tool_responses=[
-        ToolResponseConfig(
-            tool_name="web_search",
-            response_payload={"results": [{"title": "Test", "snippet": "hello"}]},
-            response_mode="success",
-        )
-    ])
+    scenario = _make_scenario(
+        tool_responses=[
+            ToolResponseConfig(
+                tool_name="web_search",
+                response_payload={"results": [{"title": "Test", "snippet": "hello"}]},
+                response_mode="success",
+            )
+        ]
+    )
     sandbox.configure_for_scenario(scenario)
 
     async with httpx.AsyncClient() as client:
@@ -142,13 +148,15 @@ async def test_configured_success_response(sandbox: SandboxServer):
 
 @pytest.mark.asyncio
 async def test_error_mode_returns_500(sandbox: SandboxServer):
-    scenario = _make_scenario(tool_responses=[
-        ToolResponseConfig(
-            tool_name="web_search",
-            response_payload=None,
-            response_mode="error",
-        )
-    ])
+    scenario = _make_scenario(
+        tool_responses=[
+            ToolResponseConfig(
+                tool_name="web_search",
+                response_payload=None,
+                response_mode="error",
+            )
+        ]
+    )
     sandbox.configure_for_scenario(scenario)
 
     async with httpx.AsyncClient() as client:
@@ -160,13 +168,15 @@ async def test_error_mode_returns_500(sandbox: SandboxServer):
 
 @pytest.mark.asyncio
 async def test_malformed_mode_returns_invalid_json(sandbox: SandboxServer):
-    scenario = _make_scenario(tool_responses=[
-        ToolResponseConfig(
-            tool_name="web_search",
-            response_payload=None,
-            response_mode="malformed",
-        )
-    ])
+    scenario = _make_scenario(
+        tool_responses=[
+            ToolResponseConfig(
+                tool_name="web_search",
+                response_payload=None,
+                response_mode="malformed",
+            )
+        ]
+    )
     sandbox.configure_for_scenario(scenario)
 
     async with httpx.AsyncClient() as client:
@@ -174,6 +184,7 @@ async def test_malformed_mode_returns_invalid_json(sandbox: SandboxServer):
 
     assert resp.status_code == 200
     import json
+
     with pytest.raises(json.JSONDecodeError):  # malformed response is not valid JSON
         resp.json()
     assert sandbox.interceptor.was_called("web_search")
@@ -182,14 +193,17 @@ async def test_malformed_mode_returns_invalid_json(sandbox: SandboxServer):
 @pytest.mark.asyncio
 async def test_delayed_mode_takes_time(sandbox: SandboxServer):
     import time
-    scenario = _make_scenario(tool_responses=[
-        ToolResponseConfig(
-            tool_name="slow_tool",
-            response_payload={"result": "slow"},
-            response_mode="delayed",
-            delay_seconds=0.2,
-        )
-    ])
+
+    scenario = _make_scenario(
+        tool_responses=[
+            ToolResponseConfig(
+                tool_name="slow_tool",
+                response_payload={"result": "slow"},
+                response_mode="delayed",
+                delay_seconds=0.2,
+            )
+        ]
+    )
     sandbox.configure_for_scenario(scenario)
 
     t0 = time.monotonic()
@@ -202,21 +216,23 @@ async def test_delayed_mode_takes_time(sandbox: SandboxServer):
 
 # ------------------------------------------------------------------ jinja2 rendering
 
+
 @pytest.mark.asyncio
 async def test_jinja2_payload_renders_request_context(sandbox: SandboxServer):
-    scenario = _make_scenario(tool_responses=[
-        ToolResponseConfig(
-            tool_name="web_search",
-            response_payload={"echo_query": "{{ query }}"},
-            response_mode="success",
-        )
-    ])
+    scenario = _make_scenario(
+        tool_responses=[
+            ToolResponseConfig(
+                tool_name="web_search",
+                response_payload={"echo_query": "{{ query }}"},
+                response_mode="success",
+            )
+        ]
+    )
     sandbox.configure_for_scenario(scenario)
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"{sandbox.base_url}/tools/web_search",
-            json={"query": "hello_from_test"}
+            f"{sandbox.base_url}/tools/web_search", json={"query": "hello_from_test"}
         )
 
     data = resp.json()
@@ -224,6 +240,7 @@ async def test_jinja2_payload_renders_request_context(sandbox: SandboxServer):
 
 
 # ------------------------------------------------------------------ two sandboxes
+
 
 @pytest.mark.asyncio
 async def test_two_sandboxes_use_different_ports():

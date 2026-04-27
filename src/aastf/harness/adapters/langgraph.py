@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 try:
     from langchain_core.callbacks import BaseCallbackHandler
     from langchain_core.messages import HumanMessage, SystemMessage
+
     HAS_LANGCHAIN = True
 except ImportError:
     HAS_LANGCHAIN = False
@@ -58,13 +59,15 @@ class AASFCallbackHandler(BaseCallbackHandler):  # type: ignore[misc]
         key = str(run_id)
         self._tool_start_times[key] = time.monotonic()
         self._tool_inputs[key] = input_str
-        self._collector.record_event(TraceEvent(
-            event_type=TraceEventType.TOOL_START,
-            run_id=key,
-            parent_run_id=str(parent_run_id) if parent_run_id else None,
-            name=serialized.get("name", "unknown"),
-            data={"input": input_str},
-        ))
+        self._collector.record_event(
+            TraceEvent(
+                event_type=TraceEventType.TOOL_START,
+                run_id=key,
+                parent_run_id=str(parent_run_id) if parent_run_id else None,
+                name=serialized.get("name", "unknown"),
+                data={"input": input_str},
+            )
+        )
 
     def on_tool_end(
         self,
@@ -83,21 +86,25 @@ class AASFCallbackHandler(BaseCallbackHandler):  # type: ignore[misc]
         # Prefer kwargs['name'] (set by LangGraph >= 0.2 for named tools)
         tool_name = kwargs.get("name", "unknown")
 
-        self._collector.record_invocation(ToolInvocation(
-            tool_name=tool_name,
-            tool_call_id=key,
-            inputs={"raw": inputs_raw},
-            outputs=str(output) if output is not None else None,
-            duration_ms=duration,
-            sandbox_intercepted=True,
-        ))
-        self._collector.record_event(TraceEvent(
-            event_type=TraceEventType.TOOL_END,
-            run_id=key,
-            parent_run_id=str(parent_run_id) if parent_run_id else None,
-            name=tool_name,
-            data={"output": str(output)},
-        ))
+        self._collector.record_invocation(
+            ToolInvocation(
+                tool_name=tool_name,
+                tool_call_id=key,
+                inputs={"raw": inputs_raw},
+                outputs=str(output) if output is not None else None,
+                duration_ms=duration,
+                sandbox_intercepted=True,
+            )
+        )
+        self._collector.record_event(
+            TraceEvent(
+                event_type=TraceEventType.TOOL_END,
+                run_id=key,
+                parent_run_id=str(parent_run_id) if parent_run_id else None,
+                name=tool_name,
+                data={"output": str(output)},
+            )
+        )
 
     def on_tool_error(
         self,
@@ -106,12 +113,14 @@ class AASFCallbackHandler(BaseCallbackHandler):  # type: ignore[misc]
         run_id: UUID,
         **kwargs: Any,
     ) -> None:
-        self._collector.record_event(TraceEvent(
-            event_type=TraceEventType.TOOL_ERROR,
-            run_id=str(run_id),
-            name=kwargs.get("name", "unknown"),
-            data={"error": str(error)},
-        ))
+        self._collector.record_event(
+            TraceEvent(
+                event_type=TraceEventType.TOOL_ERROR,
+                run_id=str(run_id),
+                name=kwargs.get("name", "unknown"),
+                data={"error": str(error)},
+            )
+        )
 
     # -------------------------------------------------------------------- chains
 
@@ -154,6 +163,7 @@ class LangGraphHarness:
 
         # Wire sandbox tools so agent calls hit the mock backend
         from ...sandbox.tools import create_sandbox_tools
+
         tools = create_sandbox_tools(self._sandbox.base_url, scenario.available_tools)
         graph = self._factory(tools)
 
@@ -185,10 +195,12 @@ class LangGraphHarness:
             return {"messages": [HumanMessage(content=scenario.payload)]}
 
         if scenario.inject_into == InjectionPoint.SYSTEM_PROMPT:
-            return {"messages": [
-                SystemMessage(content=scenario.payload),
-                HumanMessage(content="Proceed with the task."),
-            ]}
+            return {
+                "messages": [
+                    SystemMessage(content=scenario.payload),
+                    HumanMessage(content="Proceed with the task."),
+                ]
+            }
 
         # TOOL_RESPONSE and MEMORY injections are handled at the sandbox level
         # (the sandbox returns the poisoned payload when the tool is called).

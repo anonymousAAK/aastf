@@ -33,6 +33,7 @@ def create_sandbox_tools(base_url: str, tool_names: list[str]) -> list[Any]:
     def _make_tool(name: str):
         async def _tool_fn(**kwargs: Any) -> dict[str, Any]:
             import httpx
+
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{base_url}/tools/{name}",

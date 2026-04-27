@@ -15,19 +15,20 @@ console = Console()
 def serve(
     port: int = typer.Option(18080, "--port", "-p", help="Port to listen on"),
     scenario_id: str = typer.Option(
-        None, "--scenario", "-s",
-        help="Load a specific scenario's tool configs (e.g. ASI02-001)"
+        None, "--scenario", "-s", help="Load a specific scenario's tool configs (e.g. ASI02-001)"
     ),
 ) -> None:
     """Start the AASTF sandbox server standalone for manual testing."""
 
     async def _run() -> None:
         from ...sandbox.server import SandboxServer
+
         sandbox = SandboxServer()
         sandbox._port = port  # override auto-assigned port
 
         if scenario_id:
             from ...scenarios.registry import ScenarioRegistry
+
             registry = ScenarioRegistry().load_builtin()
             try:
                 scenario = registry.get(scenario_id)

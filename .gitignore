@@ -16,3 +16,6 @@ aastf-results/
 .aastf/
 outreach/
 benchmark/results/
+.coverage
+.coverage.*
+htmlcov/

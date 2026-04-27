@@ -9,8 +9,13 @@ from aastf.models.scenario import ASICategory, Severity
 from aastf.scenarios.registry import ScenarioRegistry
 
 
-def _write_scenario(path: Path, scenario_id: str, category: str = "ASI01",
-                    severity: str = "HIGH", tags: list[str] | None = None) -> None:
+def _write_scenario(
+    path: Path,
+    scenario_id: str,
+    category: str = "ASI01",
+    severity: str = "HIGH",
+    tags: list[str] | None = None,
+) -> None:
     tag_line = f"tags: [{', '.join(tags)}]" if tags else ""
     content = textwrap.dedent(f"""\
         id: {scenario_id}
@@ -111,6 +116,7 @@ class TestScenarioRegistry:
 
     def test_filter_empty_result(self):
         r = ScenarioRegistry().load_builtin()
-        results = r.filter(categories=["ASI01"], min_severity="CRITICAL",
-                           tags=["nonexistent-tag-xyz"])
+        results = r.filter(
+            categories=["ASI01"], min_severity="CRITICAL", tags=["nonexistent-tag-xyz"]
+        )
         assert results == []

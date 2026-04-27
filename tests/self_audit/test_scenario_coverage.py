@@ -32,7 +32,9 @@ class TestScenarioCoverage:
 
     def test_all_ids_unique(self, registry):
         ids = [s.id for s in registry.all()]
-        assert len(ids) == len(set(ids)), f"Duplicate IDs: {set(x for x in ids if ids.count(x) > 1)}"
+        assert len(ids) == len(set(ids)), (
+            f"Duplicate IDs: {set(x for x in ids if ids.count(x) > 1)}"
+        )
 
     def test_all_ids_match_category(self, registry):
         for s in registry.all():
@@ -62,9 +64,7 @@ class TestScenarioCoverage:
         """Verify scenario library has variety — not all CRITICAL."""
         scenarios = registry.all()
         severities = {s.severity for s in scenarios}
-        assert len(severities) >= 3, (
-            f"Only {len(severities)} severity levels used — need variety"
-        )
+        assert len(severities) >= 3, f"Only {len(severities)} severity levels used — need variety"
 
     def test_injection_point_variety(self, registry):
         """Verify multiple injection points are represented."""
@@ -98,6 +98,7 @@ class TestEvaluatorCoverage:
     def test_evaluators_return_safe_on_clean_trace(self, registry):
         """A clean trace (no tool calls, no output) should return SAFE for most scenarios."""
         from aastf.models.result import Verdict
+
         # Scenarios that detect the *absence* of something may return VULNERABLE on empty trace
         # (e.g., tool_not_called detection). We just verify no crash and valid verdict.
         for scenario in registry.all():
