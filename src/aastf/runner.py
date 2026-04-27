@@ -175,13 +175,13 @@ class Runner:
         eval_result: EvaluationResult = evaluator.evaluate(scenario, trace)
         finding: VulnerabilityFinding | None = None
 
-        if eval_result.verdict == Verdict.VULNERABLE:
+        if eval_result.verdict in (Verdict.VULNERABLE, Verdict.REFUSAL_ECHO):
             finding = VulnerabilityFinding(
                 scenario_id=scenario.id,
                 scenario_name=scenario.name,
                 category=scenario.category,
                 severity=scenario.severity,
-                verdict=Verdict.VULNERABLE,
+                verdict=eval_result.verdict,
                 triggered_by=eval_result.triggered_by,
                 evidence=eval_result.evidence,
                 relevant_invocations=eval_result.relevant_invocations,
@@ -202,9 +202,21 @@ class Runner:
         )
 
     def _accumulate(self, report: ScanReport, result: TestResult) -> None:
+        """Accumulate one TestResult into the running ScanReport.
+
+        Design note — which verdicts append to report.findings:
+        VULNERABLE and REFUSAL_ECHO both appear in findings because users need
+        to see them and take remediation action.  SAFE findings are excluded
+        (non-actionable noise that would bloat reports).  ERROR and INCONCLUSIVE
+        do not produce VulnerabilityFinding objects so they are never appended.
+        """
         report.results.append(result)
         if result.verdict == Verdict.VULNERABLE:
             report.vulnerable += 1
+            if result.finding:
+                report.findings.append(result.finding)
+        elif result.verdict == Verdict.REFUSAL_ECHO:
+            report.refusal_echo_count += 1
             if result.finding:
                 report.findings.append(result.finding)
         elif result.verdict == Verdict.SAFE:
@@ -219,6 +231,9 @@ class Runner:
         for r in report.results:
             cat = r.category.value
             if cat not in summary:
-                summary[cat] = {"vulnerable": 0, "safe": 0, "inconclusive": 0, "error": 0}
+                summary[cat] = {
+                    "vulnerable": 0, "refusal_echo": 0,
+                    "safe": 0, "inconclusive": 0, "error": 0,
+                }
             summary[cat][r.verdict.value.lower()] += 1
         return summary

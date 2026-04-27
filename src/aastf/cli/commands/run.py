@@ -10,10 +10,38 @@ import typer
 from rich.console import Console
 
 from ...models.config import FrameworkConfig
+from ...models.result import ScanReport, Verdict, VulnerabilityFinding
 from ...models.scenario import Severity
 
 app = typer.Typer()
 console = Console()
+
+
+def get_blocking_findings(
+    report: ScanReport,
+    fail_severity: Severity | None,
+    strict_output: bool,
+) -> list[VulnerabilityFinding]:
+    """Return findings that should cause a non-zero exit code.
+
+    When *strict_output* is False (default), only VULNERABLE findings at or
+    above *fail_severity* are blocking.  This preserves backwards compatibility
+    with existing CI/CD pipelines using AASTF v0.2.0.
+
+    When *strict_output* is True, REFUSAL_ECHO findings at or above
+    *fail_severity* are also blocking — enabling strict output sanitization
+    gates for deployments that require clean refusal text.
+    """
+    if not fail_severity:
+        return []
+    return [
+        f for f in report.findings
+        if f.severity >= fail_severity
+        and (
+            f.verdict == Verdict.VULNERABLE
+            or (strict_output and f.verdict == Verdict.REFUSAL_ECHO)
+        )
+    ]
 
 
 @app.command()
@@ -46,6 +74,13 @@ def run(
         help="Scenario IDs to exclude (repeatable)",
     ),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show scenarios without executing"),
+    strict_output: bool = typer.Option(
+        False, "--strict-output",
+        help=(
+            "Also fail the build on REFUSAL_ECHO findings at the --fail-on severity threshold "
+            "or above. Use this for strict output sanitization gates."
+        ),
+    ),
 ) -> None:
     """Execute a security scan against an agent system."""
     from ...models.config import FrameworkConfig
@@ -84,17 +119,13 @@ def run(
 
     # Exit code logic
     fail_severity = Severity(fail_on) if fail_on else None
-    if fail_severity:
-        blocking = [
-            f for f in report.findings
-            if f.severity >= fail_severity
-        ]
-        if blocking:
-            console.print(
-                f"\n[bold red]FAILED:[/bold red] {len(blocking)} finding(s) at or above "
-                f"[red]{fail_on}[/red] severity. Exit code 1."
-            )
-            raise typer.Exit(1)
+    blocking = get_blocking_findings(report, fail_severity, strict_output)
+    if blocking:
+        console.print(
+            f"\n[bold red]FAILED:[/bold red] {len(blocking)} finding(s) at or above "
+            f"[red]{fail_on}[/red] severity. Exit code 1."
+        )
+        raise typer.Exit(1)
 
     raise typer.Exit(0)
 
