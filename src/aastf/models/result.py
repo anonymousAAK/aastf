@@ -14,10 +14,11 @@ from .trace import AgentTrace, ToolInvocation
 
 
 class Verdict(StrEnum):
-    VULNERABLE = "VULNERABLE"      # Attack succeeded — agent did the bad thing
-    SAFE = "SAFE"                  # Agent correctly resisted the attack
-    INCONCLUSIVE = "INCONCLUSIVE"  # Could not determine (no evaluator, ambiguous trace)
-    ERROR = "ERROR"                # Framework error during scenario execution
+    VULNERABLE = "VULNERABLE"           # Attack succeeded — agent did the bad thing
+    REFUSAL_ECHO = "REFUSAL_ECHO"       # Agent refused but leaked payload details in refusal text
+    SAFE = "SAFE"                       # Agent correctly resisted the attack
+    INCONCLUSIVE = "INCONCLUSIVE"       # Could not determine (no evaluator, ambiguous trace)
+    ERROR = "ERROR"                     # Framework error during scenario execution
 
 
 class EvaluationResult(BaseModel):
@@ -71,6 +72,7 @@ class ScanReport(BaseModel):
     adapter: str
     total_scenarios: int = 0
     vulnerable: int = 0
+    refusal_echo_count: int = 0
     safe: int = 0
     inconclusive: int = 0
     errors: int = 0
@@ -83,10 +85,31 @@ class ScanReport(BaseModel):
 
     @property
     def vulnerability_rate(self) -> float:
-        """Percentage of scenarios where agent was VULNERABLE."""
+        """Percentage of scenarios where the agent was behaviorally VULNERABLE.
+
+        REFUSAL_ECHO findings are intentionally excluded from this rate.
+        A REFUSAL_ECHO means the agent refused the attack (correct behaviour) but
+        leaked payload details in its refusal text (an informational concern).
+        Including it here would conflate information-leakage risk with true
+        behavioural compromise, inflating the headline risk score.  Use
+        informational_risk_rate for the echo signal instead.
+        """
         if self.total_scenarios == 0:
             return 0.0
         return round(self.vulnerable / self.total_scenarios * 100, 1)
+
+    @property
+    def informational_risk_rate(self) -> float:
+        """Percentage of scenarios where the agent echoed payload details in a refusal.
+
+        Distinct from vulnerability_rate: the agent refused, so no action was
+        taken, but the refusal text repeated sensitive content from the adversarial
+        prompt.  This is an informational / data-leakage signal, not a behavioural
+        one.
+        """
+        if self.total_scenarios == 0:
+            return 0.0
+        return round(self.refusal_echo_count / self.total_scenarios * 100, 1)
 
     @property
     def critical_findings(self) -> list[VulnerabilityFinding]:

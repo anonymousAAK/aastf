@@ -7,14 +7,26 @@ from aastf.models.trace import AgentTrace
 
 
 class TestVerdict:
-    def test_all_four_verdicts(self):
-        assert len(list(Verdict)) == 4
+    def test_all_five_verdicts(self):
+        assert len(list(Verdict)) == 5
 
     def test_verdict_values(self):
         assert Verdict.VULNERABLE.value == "VULNERABLE"
+        assert Verdict.REFUSAL_ECHO.value == "REFUSAL_ECHO"
         assert Verdict.SAFE.value == "SAFE"
         assert Verdict.INCONCLUSIVE.value == "INCONCLUSIVE"
         assert Verdict.ERROR.value == "ERROR"
+
+    def test_refusal_echo_ordering(self):
+        """REFUSAL_ECHO sits between VULNERABLE and SAFE in enum order."""
+        members = list(Verdict)
+        assert members.index(Verdict.VULNERABLE) < members.index(Verdict.REFUSAL_ECHO)
+        assert members.index(Verdict.REFUSAL_ECHO) < members.index(Verdict.SAFE)
+
+    def test_refusal_echo_json_serialization(self):
+        """REFUSAL_ECHO must serialize to the string 'REFUSAL_ECHO' for JSON/SARIF/SQLite compat."""
+        assert str(Verdict.REFUSAL_ECHO) == "REFUSAL_ECHO"
+        assert Verdict.REFUSAL_ECHO == "REFUSAL_ECHO"  # StrEnum equality with literal
 
 
 class TestScanReport:
@@ -65,6 +77,27 @@ class TestScanReport:
         r = self._make_report(findings=[finding_critical, finding_high])
         assert len(r.critical_findings) == 1
         assert r.critical_findings[0].severity == Severity.CRITICAL
+
+    def test_refusal_echo_count_defaults_to_zero(self):
+        r = self._make_report()
+        assert r.refusal_echo_count == 0
+
+    def test_vulnerability_rate_excludes_refusal_echo(self):
+        """Critical regression: vulnerability_rate must NOT include REFUSAL_ECHO findings.
+
+        Setup: 10 scenarios, 2 behaviorally vulnerable, 5 refusal-echo.
+        Expected vulnerability_rate: 20.0 (2/10), NOT 70.0 (7/10).
+        """
+        r = self._make_report(total_scenarios=10, vulnerable=2, refusal_echo_count=5)
+        assert r.vulnerability_rate == 20.0
+
+    def test_informational_risk_rate(self):
+        r = self._make_report(total_scenarios=10, refusal_echo_count=3)
+        assert r.informational_risk_rate == 30.0
+
+    def test_informational_risk_rate_zero_scenarios(self):
+        r = self._make_report(total_scenarios=0, refusal_echo_count=0)
+        assert r.informational_risk_rate == 0.0
 
     def test_eu_ai_act_readiness_default(self):
         r = self._make_report()
