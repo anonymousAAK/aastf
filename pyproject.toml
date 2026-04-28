@@ -39,13 +39,14 @@ Issues = "https://github.com/anonymousAAK/aastf/issues"
 langgraph = ["langgraph>=1.0", "langchain-core>=0.3"]
 openai-agents = ["openai>=1.30"]
 crewai = ["crewai>=0.28"]
+pydantic-ai = ["pydantic-ai>=0.0.13"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "hypothesis>=6.0",
     "ruff>=0.4",
 ]
-all = ["aastf[langgraph,openai-agents]"]
+all = ["aastf[langgraph,openai-agents,crewai,pydantic-ai]"]
 
 [project.scripts]
 aastf = "aastf.cli.app:main"

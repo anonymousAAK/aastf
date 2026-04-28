@@ -49,8 +49,16 @@ def load_directory(path: Path) -> list[AttackScenario]:
     """Recursively load all *.yaml scenario files from a directory.
 
     Files named meta.yaml are skipped (they contain category metadata, not scenarios).
+
+    Raises ``ValueError`` if *path* contains path-traversal components (``..``).
     """
     path = Path(path)
+    # Reject path-traversal attempts before resolving to avoid symlink tricks
+    if ".." in path.parts:
+        raise ValueError(
+            f"Path traversal detected in scenario directory path: {path!r}. "
+            "Use absolute paths or paths relative to the project root."
+        )
     if not path.exists():
         raise FileNotFoundError(f"Scenario directory not found: {path}")
     if not path.is_dir():

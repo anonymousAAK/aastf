@@ -14,7 +14,7 @@ class SandboxConfig(BaseModel):
 
 
 class FrameworkConfig(BaseModel):
-    adapter: Literal["langgraph", "openai_agents", "crewai", "pydantic_ai", "generic"]
+    adapter: Literal["langgraph", "openai_agents", "crewai", "pydantic_ai"]
     agent_factory: str  # dotted path e.g. "myapp.agent:create_agent"
     categories: list[str] = Field(default_factory=list)  # empty = all categories
     scenario_dirs: list[str] = Field(default_factory=list)

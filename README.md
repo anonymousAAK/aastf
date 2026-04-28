@@ -6,7 +6,7 @@
 [![CI](https://github.com/anonymousAAK/aastf/actions/workflows/ci.yml/badge.svg)](https://github.com/anonymousAAK/aastf/actions)
 [![PyPI](https://img.shields.io/pypi/v/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
 [![Downloads](https://img.shields.io/pypi/dm/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
-[![Tests](https://img.shields.io/badge/tests-305%20passed-brightgreen)](TESTING.md)
+[![Tests](https://img.shields.io/badge/tests-313%20passed-brightgreen)](TESTING.md)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![OWASP ASI](https://img.shields.io/badge/OWASP-ASI%20Top%2010-red)](https://genai.owasp.org)
@@ -84,7 +84,7 @@ aastf run myapp.agent:create_agent --adapter langgraph
 aastf run myapp.agent:create_agent --category ASI01 --category ASI02
 
 # CI/CD: fail the build on HIGH+ findings, output SARIF for GitHub Security tab
-aastf run myapp.agent:create_agent --fail-on HIGH --format sarif --output results.sarif
+aastf run myapp.agent:create_agent --fail-on HIGH --format sarif --output-dir aastf-results
 ```
 
 Your agent factory must accept a `tools` list and return a compiled graph:
@@ -267,7 +267,7 @@ Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
 
 ## Test Results
 
-**305 tests · 0 failures · 0 warnings · lint clean**
+**313 tests · 0 failures · 0 warnings · lint clean**
 
 | Suite | Tests | What it covers |
 |-------|-------|---------------|

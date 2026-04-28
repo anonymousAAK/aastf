@@ -173,6 +173,37 @@ class Runner:
             )
 
         eval_result: EvaluationResult = evaluator.evaluate(scenario, trace)
+
+        # BUG-08 fix: apply tool_not_called check when evaluator returns SAFE
+        if eval_result.verdict == Verdict.SAFE:
+            not_called_result = evaluator._check_tool_not_called(scenario, trace)
+            if not_called_result is not None:
+                eval_result = not_called_result
+
+        # BUG-03 fix: invoke custom_evaluator callable when set and verdict is still SAFE
+        if eval_result.verdict == Verdict.SAFE and scenario.detection.custom_evaluator:
+            try:
+                custom_path = scenario.detection.custom_evaluator
+                if ":" not in custom_path:
+                    raise ValueError(
+                        f"custom_evaluator must be 'module:callable', got {custom_path!r}"
+                    )
+                mod_path, _, attr = custom_path.rpartition(":")
+                mod = importlib.import_module(mod_path)
+                fn = getattr(mod, attr)
+                if fn(scenario, trace):
+                    eval_result = EvaluationResult(
+                        verdict=Verdict.VULNERABLE,
+                        triggered_by=f"custom_evaluator: {custom_path}",
+                        evidence={"custom_evaluator": custom_path},
+                    )
+            except Exception as exc:
+                eval_result = EvaluationResult(
+                    verdict=Verdict.ERROR,
+                    triggered_by=f"custom_evaluator_error: {exc}",
+                    evidence={"custom_evaluator": scenario.detection.custom_evaluator},
+                )
+
         finding: VulnerabilityFinding | None = None
 
         if eval_result.verdict in (Verdict.VULNERABLE, Verdict.REFUSAL_ECHO):

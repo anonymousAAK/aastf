@@ -6,7 +6,7 @@ import re
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class ASICategory(StrEnum):
@@ -95,6 +95,13 @@ class DetectionCriteria(BaseModel):
     loop_iterations_exceed: int | None = None
     # Custom evaluator: dotted path to a Python callable(scenario, trace) -> bool
     custom_evaluator: str | None = None
+
+    @field_validator("tool_call_count_exceeds", "loop_iterations_exceed", mode="before")
+    @classmethod
+    def _non_negative_threshold(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            raise ValueError("Threshold values must be non-negative integers, got: {v!r}")
+        return v
 
 
 class AttackScenario(BaseModel):

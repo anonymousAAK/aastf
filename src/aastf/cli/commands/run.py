@@ -93,17 +93,21 @@ def run(
     """Execute a security scan against an agent system."""
     from ...models.config import FrameworkConfig
 
-    config = FrameworkConfig(
-        adapter=adapter,  # type: ignore[arg-type]
-        agent_factory=agent_module,
-        categories=list(category),
-        exclude_scenarios=list(exclude),
-        scenario_dirs=list(scenario_dir),
-        report_formats=list(format),  # type: ignore[arg-type]
-        output_dir=output_dir,
-        fail_on_severity=fail_on,
-        timeout_seconds=timeout,
-    )
+    try:
+        config = FrameworkConfig(
+            adapter=adapter,  # type: ignore[arg-type]
+            agent_factory=agent_module,
+            categories=list(category),
+            exclude_scenarios=list(exclude),
+            scenario_dirs=list(scenario_dir),
+            report_formats=list(format),  # type: ignore[arg-type]
+            output_dir=output_dir,
+            fail_on_severity=fail_on,
+            timeout_seconds=timeout,
+        )
+    except Exception as exc:
+        console.print(f"[bold red]Configuration error:[/bold red] {exc}")
+        raise typer.Exit(2)
 
     if dry_run:
         _dry_run(config)
