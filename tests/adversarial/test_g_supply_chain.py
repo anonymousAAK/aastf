@@ -155,7 +155,7 @@ class TestNoHardcodedSecrets:
             for pattern in self.SECRET_PATTERNS:
                 if re.search(pattern, content):
                     violations.append(f"{py_file.relative_to(REPO_ROOT)}: {pattern}")
-        assert not violations, f"Potential secrets found:\n" + "\n".join(violations)
+        assert not violations, "Potential secrets found:\n" + "\n".join(violations)
 
     def test_no_secrets_in_yaml_scenarios(self):
         """Hypothesis: No hardcoded API keys in YAML scenario files."""
@@ -166,7 +166,7 @@ class TestNoHardcodedSecrets:
             for pattern in self.SECRET_PATTERNS:
                 if re.search(pattern, content):
                     violations.append(f"{yaml_file.name}: {pattern}")
-        assert not violations, f"Potential secrets in scenarios:\n" + "\n".join(violations)
+        assert not violations, "Potential secrets in scenarios:\n" + "\n".join(violations)
 
 
 # --------------------------------------------------------------------------- G6
@@ -193,8 +193,9 @@ class TestJinja2Safety:
         Hypothesis: render_payload() using StrictUndefined raises UndefinedError
         for undefined variables, not silently passing them.
         """
-        from aastf.scenarios.loader import render_payload
         from jinja2 import UndefinedError
+
+        from aastf.scenarios.loader import render_payload
 
         with pytest.raises(UndefinedError):
             render_payload("Hello {{ undefined_var }}")
@@ -210,8 +211,9 @@ class TestJinja2Safety:
         Hypothesis: Jinja2 template cannot access Python's config/module globals.
         StrictUndefined prevents accessing undefined names.
         """
-        from aastf.scenarios.loader import render_payload
         from jinja2 import UndefinedError
+
+        from aastf.scenarios.loader import render_payload
 
         # Try to access __class__ through undefined
         with pytest.raises(UndefinedError):

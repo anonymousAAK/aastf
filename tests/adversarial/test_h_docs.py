@@ -95,16 +95,18 @@ class TestCLIFlags:
 
     def test_adapter_flag_exists(self):
         """Hypothesis: --adapter flag exists in run command."""
-        from aastf.cli.commands.run import run
         # Typer commands store their parameters
         # Check the function signature
         import inspect
+
+        from aastf.cli.commands.run import run
         sig = inspect.signature(run)
         assert "adapter" in sig.parameters
 
     def test_fail_on_flag_exists(self):
         """Hypothesis: --fail-on flag exists."""
         import inspect
+
         from aastf.cli.commands.run import run
         sig = inspect.signature(run)
         assert "fail_on" in sig.parameters
@@ -112,6 +114,7 @@ class TestCLIFlags:
     def test_format_flag_exists(self):
         """Hypothesis: --format flag exists."""
         import inspect
+
         from aastf.cli.commands.run import run
         sig = inspect.signature(run)
         assert "format" in sig.parameters
@@ -119,6 +122,7 @@ class TestCLIFlags:
     def test_output_dir_flag_exists(self):
         """Hypothesis: --output-dir flag exists (not --output)."""
         import inspect
+
         from aastf.cli.commands.run import run
         sig = inspect.signature(run)
         assert "output_dir" in sig.parameters
@@ -126,6 +130,7 @@ class TestCLIFlags:
     def test_strict_output_flag_exists(self):
         """Hypothesis: --strict-output flag exists."""
         import inspect
+
         from aastf.cli.commands.run import run
         sig = inspect.signature(run)
         assert "strict_output" in sig.parameters
@@ -166,6 +171,7 @@ class TestExitCodes:
         config errors (e.g., invalid adapter value passed via CLI).
         """
         import inspect
+
         from aastf.cli.commands import run as run_module
         source = inspect.getsource(run_module)
         assert "Exit(2)" in source, (
@@ -179,7 +185,7 @@ class TestRefusalEchoDocumentation:
 
     def test_refusal_echo_never_non_compliant(self):
         """Hypothesis: REFUSAL_ECHO at any severity never gives non_compliant readiness."""
-        from aastf.models.result import ScanReport, VulnerabilityFinding, Verdict
+        from aastf.models.result import ScanReport, Verdict, VulnerabilityFinding
         from aastf.models.scenario import ASICategory, Severity
         from aastf.scoring import eu_ai_act_readiness
 
@@ -211,6 +217,7 @@ class TestGenericAdapterDocumentation:
         time with a Pydantic error — fail-fast before any runtime code runs.
         """
         from pydantic import ValidationError
+
         from aastf.models.config import FrameworkConfig
         with pytest.raises(ValidationError):
             FrameworkConfig(adapter="generic", agent_factory="os:getcwd")

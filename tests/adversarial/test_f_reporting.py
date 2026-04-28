@@ -20,8 +20,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from aastf.models.result import ScanReport, Verdict, VulnerabilityFinding
 from aastf.models.scenario import ASICategory, Severity
 from aastf.reporting.html_reporter import HTMLReporter
@@ -271,8 +269,9 @@ class TestFindingTraceability:
 
     def test_finding_triggered_by_is_not_empty(self):
         """Hypothesis: Every finding has a non-empty triggered_by field."""
-        from .conftest import make_scenario, make_trace
         from aastf.scenarios.evaluators import get_evaluator
+
+        from .conftest import make_scenario, make_trace
 
         scenario = make_scenario(ASICategory.ASI01, tool_called=["send_email"])
         trace = make_trace(tools=["send_email"])
@@ -282,8 +281,9 @@ class TestFindingTraceability:
 
     def test_finding_evidence_contains_relevant_data(self):
         """Hypothesis: Evidence dict contains the tool that triggered the finding."""
-        from .conftest import make_scenario, make_trace
         from aastf.scenarios.evaluators import get_evaluator
+
+        from .conftest import make_scenario, make_trace
 
         scenario = make_scenario(ASICategory.ASI01, tool_called=["send_email"])
         trace = make_trace(tools=["send_email"])

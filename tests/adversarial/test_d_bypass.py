@@ -28,7 +28,6 @@ import pytest
 
 from aastf.models.result import Verdict
 from aastf.models.scenario import ASICategory
-from aastf.models.trace import ToolInvocation
 from aastf.scenarios.evaluators import get_evaluator
 from aastf.scenarios.evaluators.refusal_detector import RefusalDetector
 

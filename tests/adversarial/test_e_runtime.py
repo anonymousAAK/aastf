@@ -21,10 +21,11 @@ import copy
 
 import pytest
 
+from aastf.harness.collector import TraceCollector
 from aastf.models.result import ScanReport, TestResult, Verdict
 from aastf.models.scenario import ASICategory, Severity
-from aastf.models.trace import AgentTrace, ToolInvocation, TraceEvent, TraceEventType
-from aastf.harness.collector import TraceCollector
+from aastf.models.trace import AgentTrace, ToolInvocation
+from aastf.scenarios.evaluators import get_evaluator
 
 from .conftest import make_scenario, make_trace
 
@@ -136,7 +137,6 @@ class TestAgentTrace:
 
     def test_tool_inputs_for_filters_correctly(self):
         """Hypothesis: tool_inputs_for() returns only inputs for the named tool."""
-        from aastf.models.trace import ToolInvocation
         trace = AgentTrace(
             scenario_id="test",
             adapter="test",
@@ -183,8 +183,6 @@ class TestEvaluatorImmutability:
         assert trace.iteration_count == trace_before.iteration_count
 
 
-from aastf.scenarios.evaluators import get_evaluator
-
 
 # --------------------------------------------------------------------------- E6–E8
 class TestTrendTracker:
@@ -227,9 +225,10 @@ class TestTrendTracker:
         This means running from different directories creates different databases.
         Documenting this as an INFO finding.
         """
-        from aastf.reporting.trend_tracker import TrendTracker
         from pathlib import Path
-        assert TrendTracker.DEFAULT_PATH == Path(".aastf") / "trend.db"
+
+        from aastf.reporting.trend_tracker import TrendTracker
+        assert Path(".aastf") / "trend.db" == TrendTracker.DEFAULT_PATH
         # This is not absolute — confirms CWD-relative storage
 
 
@@ -248,8 +247,8 @@ class TestRunnerAccumulate:
         )
 
     def test_accumulate_vulnerable(self):
-        from aastf.runner import Runner
         from aastf.models.config import FrameworkConfig
+        from aastf.runner import Runner
         config = FrameworkConfig(adapter="langgraph", agent_factory="os:getcwd")
         runner = Runner(config)
         report = ScanReport(aastf_version="0.3.0", adapter="test")
@@ -257,8 +256,8 @@ class TestRunnerAccumulate:
         assert report.vulnerable == 1
 
     def test_accumulate_safe(self):
-        from aastf.runner import Runner
         from aastf.models.config import FrameworkConfig
+        from aastf.runner import Runner
         config = FrameworkConfig(adapter="langgraph", agent_factory="os:getcwd")
         runner = Runner(config)
         report = ScanReport(aastf_version="0.3.0", adapter="test")
@@ -266,8 +265,8 @@ class TestRunnerAccumulate:
         assert report.safe == 1
 
     def test_accumulate_refusal_echo(self):
-        from aastf.runner import Runner
         from aastf.models.config import FrameworkConfig
+        from aastf.runner import Runner
         config = FrameworkConfig(adapter="langgraph", agent_factory="os:getcwd")
         runner = Runner(config)
         report = ScanReport(aastf_version="0.3.0", adapter="test")
@@ -275,8 +274,8 @@ class TestRunnerAccumulate:
         assert report.refusal_echo_count == 1
 
     def test_accumulate_error(self):
-        from aastf.runner import Runner
         from aastf.models.config import FrameworkConfig
+        from aastf.runner import Runner
         config = FrameworkConfig(adapter="langgraph", agent_factory="os:getcwd")
         runner = Runner(config)
         report = ScanReport(aastf_version="0.3.0", adapter="test")
@@ -285,8 +284,8 @@ class TestRunnerAccumulate:
 
     def test_counters_never_negative(self):
         """E10: Counters in ScanReport are non-negative after any accumulation."""
-        from aastf.runner import Runner
         from aastf.models.config import FrameworkConfig
+        from aastf.runner import Runner
         config = FrameworkConfig(adapter="langgraph", agent_factory="os:getcwd")
         runner = Runner(config)
         report = ScanReport(aastf_version="0.3.0", adapter="test")
@@ -309,7 +308,7 @@ class TestCustomEvaluatorIgnored:
         has no effect — it is never called by any evaluator.
         The evaluator still returns SAFE on clean trace.
         """
-        from aastf.models.scenario import DetectionCriteria, AttackScenario, InjectionPoint
+        from aastf.models.scenario import AttackScenario, DetectionCriteria, InjectionPoint
         scenario = AttackScenario(
             id="ASI01-001",
             name="Custom evaluator test",

@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-from aastf.models.result import Verdict
 from aastf.models.scenario import (
     ASICategory,
     AttackScenario,
@@ -39,7 +38,6 @@ def make_scenario(
     available_tools: list[str] | None = None,
     severity: Severity = Severity.HIGH,
 ) -> AttackScenario:
-    num = cat.value[3:]  # "01" → "01"
     return AttackScenario(
         id=sid or f"{cat.value}-001",
         name="Adversarial test scenario",

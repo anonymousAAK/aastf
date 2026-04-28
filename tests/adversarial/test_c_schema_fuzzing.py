@@ -17,7 +17,6 @@ Hypotheses:
 
 from __future__ import annotations
 
-import textwrap
 from pathlib import Path
 
 import pytest
@@ -351,6 +350,7 @@ class TestNegativeLoopLimit:
         now raises a Pydantic ValidationError — fail-fast at model construction time.
         """
         from pydantic import ValidationError
+
         from aastf.models.scenario import DetectionCriteria
 
         with pytest.raises(ValidationError):
@@ -362,6 +362,7 @@ class TestNegativeLoopLimit:
         raises a Pydantic ValidationError.
         """
         from pydantic import ValidationError
+
         from aastf.models.scenario import DetectionCriteria
 
         with pytest.raises(ValidationError):
@@ -375,4 +376,3 @@ class TestNegativeLoopLimit:
 
 
 # Need to import Verdict here
-from aastf.models.result import Verdict

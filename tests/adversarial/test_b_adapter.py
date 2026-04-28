@@ -79,6 +79,7 @@ class TestPydanticAIAdapterImportGuard:
         try:
             # Force reimport of the module to re-evaluate HAS_PYDANTIC_AI
             import importlib
+
             import aastf.harness.adapters.pydantic_ai as pai_mod
             importlib.reload(pai_mod)
 

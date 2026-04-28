@@ -107,7 +107,7 @@ def run(
         )
     except Exception as exc:
         console.print(f"[bold red]Configuration error:[/bold red] {exc}")
-        raise typer.Exit(2)
+        raise typer.Exit(2) from None
 
     if dry_run:
         _dry_run(config)
