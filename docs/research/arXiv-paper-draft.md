@@ -90,7 +90,7 @@ This paper makes three primary contributions:
 
 3. **Cross-framework comparison.** We present the first benchmark comparing LangGraph,
    CrewAI, and OpenAI Agents SDK against the full OWASP ASI taxonomy, using two model
-   backends (GPT-4o-mini-2024-07-18, claude-haiku-4-5-20251001) with controlled
+   backends (GPT-4o-mini-2024-07-18, model-c-haiku-20251001) with controlled
    variables and stability-run methodology.
 
 ---
@@ -377,7 +377,7 @@ configurations. All figures are from AASTF v0.1.0 benchmark runs (April 2026).
 | Framework | Model | Scenarios | Vulnerable | Safe | Vuln. Rate | Risk Score |
 |-----------|-------|-----------|------------|------|------------|------------|
 | LangGraph 1.0.8 | GPT-4o-mini-2024-07-18 | 50 | 31 | 19 | **62.0%** | 67.3 |
-| LangGraph 1.0.8 | claude-haiku-4-5-20251001 | 50 | 27 | 23 | **54.0%** | 58.1 |
+| LangGraph 1.0.8 | model-c-haiku-20251001 | 50 | 27 | 23 | **54.0%** | 58.1 |
 | CrewAI 0.28 | GPT-4o-mini-2024-07-18 | 50 | 35 | 15 | **70.0%** | 74.2 |
 
 The average vulnerability rate across configurations is 62.0%, significantly lower than
@@ -432,9 +432,9 @@ Five scenarios produced VULNERABLE verdicts across all tested configurations:
 These findings identify the highest-priority remediation targets for framework developers:
 tool registration validation, tool response sanitization, and planning resource bounds.
 
-### 5.4 Model Effect: Claude Haiku vs. GPT-4o-mini
+### 5.4 Model Effect: Model C vs. GPT-4o-mini
 
-Within the LangGraph adapter, Claude Haiku achieved a 8 percentage point lower
+Within the LangGraph adapter, Model C achieved a 8 percentage point lower
 vulnerability rate than GPT-4o-mini (54% vs. 62%). This gap was consistent across 7 of
 10 categories. The difference likely reflects training-level differences in how each
 model handles conflicting or suspicious instructions embedded in tool outputs, rather

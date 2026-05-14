@@ -90,7 +90,7 @@ refusal language. Re-run scans to get accurate v0.2.1 metrics.
 
 Frontier models behaviorally refuse 100% of malicious agent instructions in our
 benchmark but reproduce attack payloads in their refusals at varying rates:
-47% (GPT-5.x), 60% (Claude Sonnet 4.x), 7% (Gemini 2.5 Pro CLI).
+47% (GPT-5.x), 60% (Model B 4.x), 7% (Gemini 2.5 Pro CLI).
 Full analysis in [docs/research/refusal_echo.md](docs/research/refusal_echo.md).
 
 ---

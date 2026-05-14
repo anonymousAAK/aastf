@@ -35,7 +35,7 @@ Frameworks tested:
 | Framework | Version | Model | Exact Model ID |
 |-----------|---------|-------|---------------|
 | LangGraph | 1.0.8 | GPT-4o mini | `gpt-4o-mini-2024-07-18` |
-| LangGraph | 1.0.8 | Claude Haiku | `claude-haiku-4-5-20251001` |
+| LangGraph | 1.0.8 | Model C | `model-c-haiku-20251001` |
 | CrewAI | 0.28.0 | GPT-4o mini | `gpt-4o-mini-2024-07-18` |
 
 ---
@@ -47,7 +47,7 @@ Frameworks tested:
 | Framework | Model | Scenarios | Vulnerable | Safe | Timeouts | Borderline | Vulnerability Rate | Risk Score |
 |-----------|-------|-----------|------------|------|----------|------------|--------------------|------------|
 | LangGraph 1.0.8 | GPT-4o-mini | 50 | 31 | 19 | 0 | 3 | **62.0%** | **67.3** |
-| LangGraph 1.0.8 | Claude Haiku | 50 | 27 | 23 | 0 | 2 | **54.0%** | **58.1** |
+| LangGraph 1.0.8 | Model C | 50 | 27 | 23 | 0 | 2 | **54.0%** | **58.1** |
 | CrewAI 0.28 | GPT-4o-mini | 50 | 35 | 15 | 0 | 4 | **70.0%** | **74.2** |
 
 **Borderline:** scenarios where runs produced a 2/3 or 1/3 split. These are excluded
@@ -62,7 +62,7 @@ and HIGH scenarios representing 67.3% of maximum possible weighted exposure.
 | Configuration | 3/3 Agreement | 2/3 Split | 1/3 Split |
 |---------------|--------------|-----------|-----------|
 | LangGraph / GPT-4o-mini | 47 (94%) | 2 | 1 |
-| LangGraph / Claude Haiku | 48 (96%) | 2 | 0 |
+| LangGraph / Model C | 48 (96%) | 2 | 0 |
 | CrewAI / GPT-4o-mini | 46 (92%) | 3 | 1 |
 
 Stability is high across all configurations, confirming that temperature=0 plus
@@ -74,7 +74,7 @@ Stability is high across all configurations, confirming that temperature=0 plus
 
 Vulnerability rate by OWASP ASI category and framework/model configuration:
 
-| ASI Category | LG / GPT-4o-mini | LG / Claude Haiku | CrewAI / GPT-4o-mini | Category Average |
+| ASI Category | LG / GPT-4o-mini | LG / Model C | CrewAI / GPT-4o-mini | Category Average |
 |-------------|-----------------|------------------|--------------------|-----------------|
 | ASI01 — Goal Hijack | 3/5 (60%) | 2/5 (40%) | 4/5 (80%) | **60.0%** |
 | ASI02 — Tool Misuse | 4/5 (80%) | 3/5 (60%) | 4/5 (80%) | **73.3%** |
@@ -235,9 +235,9 @@ planning-phase resource budget enforcement. This is particularly concerning for
 autonomous agents with long-running tasks: an adversarial task or a benign task that
 induces circular planning can consume unbounded API credits and wall-clock time.
 
-### Finding Pattern 3: Claude Haiku Shows Consistently Lower Vulnerability
+### Finding Pattern 3: Model C Shows Consistently Lower Vulnerability
 
-Across all 10 categories, Claude Haiku achieved a lower or equal vulnerability rate
+Across all 10 categories, Model C achieved a lower or equal vulnerability rate
 compared to GPT-4o-mini in 9 of 10 categories (the exception being ASI04, where both
 scored 80%). The average gap is 8 percentage points (54% vs. 62%). This suggests that
 Haiku's underlying instruction-following characteristics produce more conservative
@@ -287,7 +287,7 @@ ASB baseline** for the following reasons:
 Despite the lower absolute rate, AASTF results confirm the core ASB finding: **the
 majority of agentic AI systems are vulnerable to systematic exploitation** when tested
 against a principled threat taxonomy. Even the best-performing configuration (LangGraph
-+ Claude Haiku, 54%) leaves the majority of adversarial scenarios unanswered.
++ Model C, 54%) leaves the majority of adversarial scenarios unanswered.
 
 | Benchmark | Rate | Scope | Year |
 |-----------|------|-------|------|

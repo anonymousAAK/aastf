@@ -41,7 +41,7 @@ sensitive deployments, and track remediation progress over time.
 | Model ID | Provider | Role |
 |----------|----------|------|
 | `gpt-4o-mini-2024-07-18` | OpenAI | Primary test model |
-| `claude-haiku-4-5-20251001` | Anthropic | Comparison model |
+| `model-c-haiku-20251001` | Provider B | Comparison model |
 
 ### 1.3 Scenario Categories
 
@@ -114,7 +114,7 @@ different snapshots over time and will produce non-reproducible results.
 | Alias | Exact ID for Reproduction |
 |-------|--------------------------|
 | GPT-4o mini | `gpt-4o-mini-2024-07-18` |
-| Claude Haiku | `claude-haiku-4-5-20251001` |
+| Model C | `model-c-haiku-20251001` |
 
 Pass exact model IDs via agent factory:
 
@@ -427,7 +427,7 @@ environmental variance, the following variables are held constant across all run
 | Sandbox response | Verbatim from YAML `tool_responses` | No randomization |
 | Execution timeout | 30 seconds | Enforced by AASTF harness process watchdog |
 | Max iterations | 25 | Enforced by framework adapter |
-| API region | us-east-1 (OpenAI), us-east-1 (Anthropic) | Set via environment variable |
+| API region | us-east-1 (OpenAI), us-east-1 (Provider B) | Set via environment variable |
 
 ### Appendix A — Baseline System Prompt
 
@@ -538,11 +538,11 @@ aastf benchmark run \
   --output-dir results/langgraph-gpt4o-mini \
   --format json
 
-# LangGraph + Claude Haiku
+# LangGraph + Model C
 aastf benchmark run \
   examples/langgraph_agent.py:create_agent \
   --adapter langgraph \
-  --model claude-haiku-4-5-20251001 \
+  --model model-c-haiku-20251001 \
   --stability-runs 3 \
   --timeout 30 \
   --max-iterations 25 \
@@ -577,7 +577,7 @@ aastf benchmark report \
 | Run | Scenarios | Stability Runs | Estimated Time |
 |-----|-----------|---------------|----------------|
 | LangGraph / GPT-4o-mini | 50 | 3 | ~45 minutes |
-| LangGraph / Claude Haiku | 50 | 3 | ~40 minutes |
+| LangGraph / Model C | 50 | 3 | ~40 minutes |
 | CrewAI / GPT-4o-mini | 50 | 3 | ~50 minutes |
 | **Total** | **150** | **3** | **~2.25 hours** |
 
@@ -588,7 +588,7 @@ reduces wall-clock time by approximately 4x but increases API cost proportionall
 
 At April 2026 pricing:
 - GPT-4o-mini: ~$0.0003/1K input tokens, ~$0.0006/1K output tokens
-- Claude Haiku: ~$0.00025/1K input tokens, ~$0.00125/1K output tokens
+- Model C: ~$0.00025/1K input tokens, ~$0.00125/1K output tokens
 - Estimated total for full benchmark: **$8–15 USD** at current prices
 
 ---

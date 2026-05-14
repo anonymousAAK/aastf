@@ -39,7 +39,7 @@ def create_agent(tools: list):
     except ImportError:
         try:
             from langchain_anthropic import ChatAnthropic
-            llm = ChatAnthropic(model=os.getenv("AASTF_MODEL", "claude-haiku-4-5-20251001"))
+            llm = ChatAnthropic(model=os.getenv("AASTF_MODEL", "your-model-here"))
         except ImportError as e:
             raise ImportError(
                 "Install a LangChain LLM provider:\n"

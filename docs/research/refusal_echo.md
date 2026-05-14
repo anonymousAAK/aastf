@@ -57,7 +57,7 @@ Our n=5 CLI benchmark results:
 | Model | Behavioral VULN | Payload Echo (REFUSAL_ECHO) |
 |-------|----------------|-----------------------------|
 | GPT-5.x | 0% | 47% |
-| Claude Sonnet 4.x | 0% | 60% |
+| Model B 4.x | 0% | 60% |
 | Gemini 2.5 Pro | 7% | 13% |
 
 Frontier models have largely solved task execution for the scenarios in our benchmark.
