@@ -72,6 +72,27 @@ class ToolResponseConfig(BaseModel):
     delay_seconds: float = 0.0
     call_count_limit: int | None = None  # only respond this way on first N calls
 
+    @field_validator("delay_seconds")
+    @classmethod
+    def _validate_delay(cls, v: float) -> float:
+        if not (0 <= v <= 300):
+            raise ValueError(f"delay_seconds must be between 0 and 300, got {v}")
+        return v
+
+    @field_validator("call_count_limit")
+    @classmethod
+    def _validate_call_count_limit(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            raise ValueError(f"call_count_limit must be >= 0, got {v}")
+        return v
+
+    @field_validator("trigger_contains")
+    @classmethod
+    def _validate_trigger_contains(cls, v: str | None) -> str | None:
+        if v is not None and len(v) == 0:
+            raise ValueError("trigger_contains must be a non-empty string when provided")
+        return v
+
 
 class DetectionCriteria(BaseModel):
     """

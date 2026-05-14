@@ -88,8 +88,9 @@ def compute_risk_score(report: ScanReport) -> float:
         return 0.0
 
     weighted_sum = sum(score_finding(f) * f.severity.numeric() for f in actionable)
-    raw = weighted_sum / total_weight  # 0.0–9.5
-    normalised = (raw / 9.5) * 100.0  # 0.0–100.0
+    max_base = max(_BASE_SCORES.values())
+    raw = weighted_sum / total_weight  # 0.0–max_base
+    normalised = (raw / max_base) * 100.0  # 0.0–100.0
     return round(min(normalised, 100.0), 1)
 
 

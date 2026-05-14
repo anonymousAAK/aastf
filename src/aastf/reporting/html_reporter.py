@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from jinja2 import Environment, select_autoescape
+from jinja2 import Environment
 
 from ..models.result import ScanReport, Verdict
 from ..models.scenario import Severity
@@ -15,7 +15,7 @@ class HTMLReporter:
 
     def __init__(self) -> None:
         # Fall back to a simple inline template if package loader fails
-        self._env = Environment(autoescape=select_autoescape(["html"]))
+        self._env = Environment(autoescape=True)
 
     def generate(self, report: ScanReport) -> str:
         """Return the full HTML report as a string."""

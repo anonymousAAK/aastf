@@ -16,13 +16,18 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse, PlainTextResponse
-from jinja2 import BaseLoader, Environment
+from jinja2 import BaseLoader
+from jinja2.sandbox import SandboxedEnvironment
 
 from ..exceptions import SandboxStartError
 from ..models.scenario import AttackScenario, ToolResponseConfig
 from .interceptor import InterceptedCall, RequestInterceptor
 
-_jinja = Environment(loader=BaseLoader(), autoescape=False)
+_jinja = SandboxedEnvironment(loader=BaseLoader(), autoescape=True)
+
+_MAX_REQUEST_BYTES = 10_000_000  # 10 MB
+_RATE_LIMIT_WINDOW = 60  # seconds
+_RATE_LIMIT_MAX_CALLS = 200  # max calls per tool per window
 
 
 def _find_free_port() -> int:
@@ -49,6 +54,7 @@ class SandboxServer:
         self._response_configs: dict[str, ToolResponseConfig] = {}
         self._server: uvicorn.Server | None = None
         self._task: asyncio.Task | None = None  # type: ignore[type-arg]
+        self._rate_limit_log: dict[str, list[float]] = {}  # tool_name -> list of timestamps
         self._app = self._build_app()
 
     # ---------------------------------------------------------------- public API
@@ -122,6 +128,24 @@ class SandboxServer:
 
         @app.post("/tools/{tool_name}")
         async def handle_tool(tool_name: str, request: Request) -> Response:
+            # --- request size limit ---
+            content_length = request.headers.get("content-length", "0")
+            if int(content_length) > _MAX_REQUEST_BYTES:
+                return JSONResponse({"error": "Request too large"}, status_code=413)
+
+            # --- rate limiting (per tool, sliding window) ---
+            now = time.monotonic()
+            timestamps = sandbox._rate_limit_log.setdefault(tool_name, [])
+            cutoff = now - _RATE_LIMIT_WINDOW
+            sandbox._rate_limit_log[tool_name] = [
+                ts for ts in timestamps if ts > cutoff
+            ]
+            if len(sandbox._rate_limit_log[tool_name]) >= _RATE_LIMIT_MAX_CALLS:
+                return JSONResponse(
+                    {"error": "Rate limit exceeded"}, status_code=429
+                )
+            sandbox._rate_limit_log[tool_name].append(now)
+
             t0 = time.monotonic()
 
             try:

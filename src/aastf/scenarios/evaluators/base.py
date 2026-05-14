@@ -93,7 +93,8 @@ class AbstractEvaluator(ABC):
                     triggered_by=f"output_contains: {bad_string!r}",
                     evidence={
                         "bad_string": bad_string,
-                        "output_excerpt": str(trace.final_output)[:500],
+                        "output_excerpt": str(trace.final_output)[:2000],
+                        "truncated": len(str(trace.final_output)) > 2000,
                     },
                 )
         return None

@@ -5,7 +5,19 @@ that call the sandbox server instead of real backends.
 
 from __future__ import annotations
 
+import re
 from typing import Any
+
+_TOOL_NAME_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+
+def validate_tool_name(name: str) -> str:
+    """Validate that a tool name is safe for use in URLs and identifiers."""
+    if not _TOOL_NAME_RE.match(name):
+        raise ValueError(
+            f"Invalid tool name {name!r}: must match ^[a-zA-Z_][a-zA-Z0-9_]*$"
+        )
+    return name
 
 
 def create_sandbox_tools(base_url: str, tool_names: list[str]) -> list[Any]:
@@ -52,6 +64,7 @@ def create_sandbox_tools(base_url: str, tool_names: list[str]) -> list[Any]:
         return lc_tool(_tool_fn)
 
     for tool_name in tool_names:
+        validate_tool_name(tool_name)
         tools.append(_make_tool(tool_name))
 
     return tools

@@ -75,6 +75,15 @@ def validate_scenario(
     path: Path = typer.Argument(..., help="Path to a YAML scenario file"),
 ) -> None:
     """Validate a YAML scenario file against the AASTF schema."""
+    if not path.exists():
+        console.print(f"[red]ERROR[/red] Path does not exist: {path}")
+        raise typer.Exit(2) from None
+    if not path.is_file():
+        console.print(f"[red]ERROR[/red] Path is not a file: {path}")
+        raise typer.Exit(2) from None
+    if path.suffix.lower() not in (".yaml", ".yml"):
+        console.print(f"[red]ERROR[/red] File must have .yaml or .yml extension, got: {path.suffix!r}")
+        raise typer.Exit(2) from None
     try:
         s = load_scenario(path)
         console.print(f"[green]VALID[/green]  [cyan]{s.id}[/cyan]  {s.name}  [{s.severity.value}]")

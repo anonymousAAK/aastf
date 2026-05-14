@@ -102,7 +102,10 @@ class CrewAIHarness:
             _tool_fn.__doc__ = f"Sandbox tool: {tool_name}"
             return instrument(_tool_fn, name=tool_name)
 
+        from ...sandbox.tools import validate_tool_name
+
         for name in scenario.available_tools:
+            validate_tool_name(name)
             tools.append(_make_tool(name, sandbox_url))
 
         return tools

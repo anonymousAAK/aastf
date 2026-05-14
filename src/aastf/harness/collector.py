@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from datetime import UTC, datetime
 from typing import Any
 
@@ -11,7 +12,7 @@ from ..models.trace import AgentTrace, ToolInvocation, TraceEvent, TraceEventTyp
 class TraceCollector:
     """
     Single-scenario, single-run event collector.
-    Not thread-safe — designed for one async execution at a time.
+    Thread-safe — uses a lock to protect shared state.
 
     Usage:
         collector = TraceCollector(scenario_id="ASI02-001", adapter="langgraph")
@@ -30,17 +31,20 @@ class TraceCollector:
         self._error: str | None = None
         self._started_at: datetime = datetime.now(UTC)
         self._seq: int = 0
+        self._lock: threading.Lock = threading.Lock()
 
     # ------------------------------------------------------------------ recording
 
     def record_event(self, event: TraceEvent) -> None:
-        event.sequence = self._seq
-        self._seq += 1
-        self._events.append(event)
+        with self._lock:
+            event.sequence = self._seq
+            self._seq += 1
+            self._events.append(event)
 
     def record_invocation(self, inv: ToolInvocation) -> None:
-        inv.sequence = len(self._invocations)
-        self._invocations.append(inv)
+        with self._lock:
+            inv.sequence = len(self._invocations)
+            self._invocations.append(inv)
 
     def record_delegation(self, child_agent_id: str) -> None:
         self._delegations.append(child_agent_id)
@@ -177,15 +181,16 @@ class TraceCollector:
     # ------------------------------------------------------------------- build
 
     def build_trace(self) -> AgentTrace:
-        return AgentTrace(
-            scenario_id=self._scenario_id,
-            adapter=self._adapter,
-            started_at=self._started_at,
-            ended_at=datetime.now(UTC),
-            events=self._events,
-            tool_invocations=self._invocations,
-            final_output=self._final_output,
-            error=self._error,
-            iteration_count=self._iteration_count,
-            delegations=self._delegations,
-        )
+        with self._lock:
+            return AgentTrace(
+                scenario_id=self._scenario_id,
+                adapter=self._adapter,
+                started_at=self._started_at,
+                ended_at=datetime.now(UTC),
+                events=list(self._events),
+                tool_invocations=list(self._invocations),
+                final_output=self._final_output,
+                error=self._error,
+                iteration_count=self._iteration_count,
+                delegations=list(self._delegations),
+            )

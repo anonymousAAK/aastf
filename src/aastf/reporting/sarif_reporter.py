@@ -138,7 +138,8 @@ class SARIFReporter:
                 "severity": finding.severity.value,
                 "cvss_score": finding.cvss_score,
                 "triggered_by": finding.triggered_by,
-                "evidence": str(finding.evidence)[:500],
+                "evidence": str(finding.evidence)[:2000],
+                "evidence_truncated": len(str(finding.evidence)) > 2000,
                 # Extension properties — standard SARIF tools display level/ruleId;
                 # AASTF-aware tools and workflows can filter on these fields.
                 "aastf.verdict": finding.verdict.value,

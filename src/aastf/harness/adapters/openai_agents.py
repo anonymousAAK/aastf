@@ -126,7 +126,10 @@ class OpenAIAgentsHarness:
         tools = []
         sandbox_url = self._sandbox.base_url
 
+        from ...sandbox.tools import validate_tool_name
+
         for name in scenario.available_tools:
+            validate_tool_name(name)
 
             async def _fn(tool_name: str = name, **kwargs: Any) -> str:
                 async with httpx.AsyncClient() as client:

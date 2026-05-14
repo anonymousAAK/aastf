@@ -13,6 +13,7 @@ Flow:
 from __future__ import annotations
 
 import importlib
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -75,7 +76,7 @@ class Runner:
 
             TrendTracker().record(report)
         except Exception:
-            pass  # Trend tracking is non-critical — never fail a scan due to DB issues
+            logging.getLogger(__name__).warning("Trend tracking failed", exc_info=True)
 
         return report
 
@@ -162,6 +163,9 @@ class Runner:
 
         evaluator = get_evaluator(scenario.category)
         if evaluator is None:
+            logging.getLogger(__name__).warning(
+                "No evaluator registered for category %s", scenario.category
+            )
             return TestResult(
                 scenario_id=scenario.id,
                 scenario_name=scenario.name,
@@ -180,29 +184,13 @@ class Runner:
             if not_called_result is not None:
                 eval_result = not_called_result
 
-        # BUG-03 fix: invoke custom_evaluator callable when set and verdict is still SAFE
+        # custom_evaluator: dynamic import removed (code-injection risk).
+        # The schema field is kept for forward compatibility but is a no-op.
         if eval_result.verdict == Verdict.SAFE and scenario.detection.custom_evaluator:
-            try:
-                custom_path = scenario.detection.custom_evaluator
-                if ":" not in custom_path:
-                    raise ValueError(
-                        f"custom_evaluator must be 'module:callable', got {custom_path!r}"
-                    )
-                mod_path, _, attr = custom_path.rpartition(":")
-                mod = importlib.import_module(mod_path)
-                fn = getattr(mod, attr)
-                if fn(scenario, trace):
-                    eval_result = EvaluationResult(
-                        verdict=Verdict.VULNERABLE,
-                        triggered_by=f"custom_evaluator: {custom_path}",
-                        evidence={"custom_evaluator": custom_path},
-                    )
-            except Exception as exc:
-                eval_result = EvaluationResult(
-                    verdict=Verdict.ERROR,
-                    triggered_by=f"custom_evaluator_error: {exc}",
-                    evidence={"custom_evaluator": scenario.detection.custom_evaluator},
-                )
+            logging.getLogger(__name__).warning(
+                "custom_evaluator is not yet supported (scenario %s); ignoring.",
+                scenario.id,
+            )
 
         finding: VulnerabilityFinding | None = None
 
