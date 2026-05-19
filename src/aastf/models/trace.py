@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+import sys
 import uuid
-from datetime import UTC, datetime
-from enum import StrEnum
+from datetime import datetime, timezone
+from enum import Enum
+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    class StrEnum(str, Enum):  # noqa: N801
+        """Backport for Python 3.10."""
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -43,7 +50,7 @@ class TraceEvent(BaseModel):
 
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     event_type: TraceEventType
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     run_id: str
     parent_run_id: str | None = None  # enables delegation graph reconstruction
     name: str
@@ -57,7 +64,7 @@ class AgentTrace(BaseModel):
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     scenario_id: str
     adapter: str
-    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     ended_at: datetime | None = None
     events: list[TraceEvent] = Field(default_factory=list)
     tool_invocations: list[ToolInvocation] = Field(default_factory=list)

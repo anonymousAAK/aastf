@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 import re
-from enum import StrEnum
+import sys
+from enum import Enum
+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    class StrEnum(str, Enum):  # noqa: N801
+        """Backport for Python 3.10."""
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator

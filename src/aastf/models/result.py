@@ -2,9 +2,16 @@
 
 from __future__ import annotations
 
+import sys
 import uuid
-from datetime import UTC, datetime
-from enum import StrEnum
+from datetime import datetime, timezone
+from enum import Enum
+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+    class StrEnum(str, Enum):  # noqa: N801
+        """Backport for Python 3.10."""
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -46,7 +53,7 @@ class VulnerabilityFinding(BaseModel):
     description: str
     remediation: str
     references: list[str] = Field(default_factory=list)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class TestResult(BaseModel):
@@ -67,7 +74,7 @@ class ScanReport(BaseModel):
     """Complete output of an AASTF scan run."""
 
     run_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     aastf_version: str
     adapter: str
     total_scenarios: int = 0

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from ..models.trace import AgentTrace, ToolInvocation, TraceEvent, TraceEventType
@@ -29,7 +29,7 @@ class TraceCollector:
         self._iteration_count: int = 0
         self._final_output: Any = None
         self._error: str | None = None
-        self._started_at: datetime = datetime.now(UTC)
+        self._started_at: datetime = datetime.now(timezone.utc)
         self._seq: int = 0
         self._lock: threading.Lock = threading.Lock()
 
@@ -190,7 +190,7 @@ class TraceCollector:
                 scenario_id=self._scenario_id,
                 adapter=self._adapter,
                 started_at=self._started_at,
-                ended_at=datetime.now(UTC),
+                ended_at=datetime.now(timezone.utc),
                 events=list(self._events),
                 tool_invocations=list(self._invocations),
                 final_output=self._final_output,
