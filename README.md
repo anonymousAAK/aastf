@@ -9,6 +9,7 @@
 [![Tests](https://img.shields.io/badge/tests-313%20passed-brightgreen)](TESTING.md)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20296480.svg)](https://doi.org/10.5281/zenodo.20296480)
 [![OWASP ASI](https://img.shields.io/badge/OWASP-ASI%20Top%2010-red)](https://genai.owasp.org)
 
 ---

@@ -5,6 +5,7 @@ title: "AASTF: Agentic AI Security Testing Framework"
 version: 0.4.0
 date-released: 2026-05-19
 license: MIT
+doi: "10.5281/zenodo.20296480"
 url: "https://github.com/anonymousAAK/aastf"
 repository-code: "https://github.com/anonymousAAK/aastf"
 keywords:
@@ -28,4 +29,4 @@ preferred-citation:
       given-names: Adarsh
       orcid: "https://orcid.org/0009-0001-8020-9378"
   year: 2026
-  journal: "Journal of Open Source Software"
+  doi: "10.5281/zenodo.20296480"
