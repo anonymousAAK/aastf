@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "AASTF: Agentic AI Security Testing Framework"
+version: 0.3.0
+date-released: 2026-05-19
+license: MIT
+url: "https://github.com/anonymousAAK/aastf"
+repository-code: "https://github.com/anonymousAAK/aastf"
+keywords:
+  - security
+  - artificial-intelligence
+  - autonomous-agents
+  - red-teaming
+  - OWASP
+  - LLM
+  - agentic-ai
+authors:
+  - family-names: Keshri
+    given-names: Adarsh
+    orcid: "https://orcid.org/0009-0001-8020-9378"
+    email: adarshkeshri027@gmail.com
+preferred-citation:
+  type: article
+  title: "AASTF: A Framework for Security Testing of Agentic AI Systems Against the OWASP ASI Top 10"
+  authors:
+    - family-names: Keshri
+      given-names: Adarsh
+      orcid: "https://orcid.org/0009-0001-8020-9378"
+  year: 2026
+  journal: "Journal of Open Source Software"
