@@ -20,3 +20,4 @@ benchmark/results/
 .coverage.*
 htmlcov/
 *.pdf
+plan.md
