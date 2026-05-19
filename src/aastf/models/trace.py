@@ -12,6 +12,9 @@ if sys.version_info >= (3, 11):
 else:
     class StrEnum(str, Enum):  # noqa: N801
         """Backport for Python 3.10."""
+
+        def __str__(self) -> str:
+            return self.value
 from typing import Any
 
 from pydantic import BaseModel, Field
