@@ -5,6 +5,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.4.0] — 2026-05-19
+
+### Added
+
+- **JOSS paper** (`paper.md`, `paper.bib`) — submission-ready paper for the Journal
+  of Open Source Software describing AASTF's execution graph interception technique,
+  50-scenario OWASP ASI benchmark, and cross-framework comparison results.
+- **`CITATION.cff`** — Citation File Format metadata for software citation.
+- **`CODE_OF_CONDUCT.md`** — Contributor Covenant v2.1.
+- **Paper compilation CI** (`.github/workflows/draft-paper.yml`) — Open Journals
+  GitHub Action compiles `paper.md` to PDF on every push.
+
+### Changed
+
+- Enhanced validation and error handling across modules, improved thread safety,
+  updated scoring logic.
+- Resolved all 17 audit findings (BUG-01 through BUG-17): path traversal guard,
+  base64 RCE detection, refusal detector exclamation overrides, negative threshold
+  rejection, CLI exit codes, and more.
+- Removed all model-specific references from research docs and examples.
+
+### Fixed
+
+- Version number consistency across `pyproject.toml` and `__init__.py`.
+
+---
+
 ## [0.2.1] — 2026-04-27
 
 ### Added

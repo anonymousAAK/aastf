@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "AASTF: Agentic AI Security Testing Framework"
-version: 0.3.0
+version: 0.4.0
 date-released: 2026-05-19
 license: MIT
 url: "https://github.com/anonymousAAK/aastf"
