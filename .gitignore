@@ -19,3 +19,4 @@ benchmark/results/
 .coverage
 .coverage.*
 htmlcov/
+*.pdf
