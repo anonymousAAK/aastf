@@ -1,5 +1,7 @@
 """Root CLI application."""
 
+from __future__ import annotations
+
 import typer
 
 from .commands import report as report_cmd

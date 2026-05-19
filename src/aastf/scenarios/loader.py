@@ -1,5 +1,7 @@
 """YAML scenario loader with Jinja2 payload rendering."""
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 

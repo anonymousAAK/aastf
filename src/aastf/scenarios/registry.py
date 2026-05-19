@@ -1,5 +1,7 @@
 """Scenario registry — discovers, indexes, and filters attack scenarios."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from ..models.scenario import ASICategory, AttackScenario, Severity
@@ -16,13 +18,13 @@ class ScenarioRegistry:
 
     # ------------------------------------------------------------------ loading
 
-    def load_builtin(self) -> "ScenarioRegistry":
+    def load_builtin(self) -> ScenarioRegistry:
         """Load all scenarios shipped with aastf."""
         for s in load_directory(_BUILTIN_DIR):
             self._scenarios[s.id] = s
         return self
 
-    def load_directory(self, path: Path) -> "ScenarioRegistry":
+    def load_directory(self, path: Path) -> ScenarioRegistry:
         """Load additional scenarios from a user-supplied directory."""
         for s in load_directory(path):
             if s.id in self._scenarios:

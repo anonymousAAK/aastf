@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.4.1] — 2026-05-20
+
+### Changed
+
+- **Python version support** expanded from >=3.12 to >=3.10 (3.10, 3.11, 3.12, 3.13).
+- Added `from __future__ import annotations` to six modules missing it.
+- CI matrix now tests all four supported Python versions.
+- Ruff target lowered to py310.
+
+---
+
 ## [0.4.0] — 2026-05-19
 
 ### Added

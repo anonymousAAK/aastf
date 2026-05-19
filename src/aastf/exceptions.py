@@ -1,5 +1,7 @@
 """AASTF exception hierarchy."""
 
+from __future__ import annotations
+
 
 class AASFError(Exception):
     """Base exception for all AASTF errors."""
