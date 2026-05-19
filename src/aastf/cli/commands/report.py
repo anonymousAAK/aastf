@@ -24,9 +24,15 @@ def show_report(
         console.print(f"[red]Report not found:[/red] {report_path}")
         raise typer.Exit(1)
 
+    from pydantic import ValidationError
+
     from ...models.result import ScanReport
 
-    report = ScanReport.model_validate_json(report_path.read_text(encoding="utf-8"))
+    try:
+        report = ScanReport.model_validate_json(report_path.read_text(encoding="utf-8"))
+    except (ValidationError, ValueError) as e:
+        console.print(f"[red]Invalid report file:[/red] {e}")
+        raise typer.Exit(1) from None
 
     if format == "console":
         from ...reporting.console_reporter import ConsoleReporter
@@ -55,6 +61,8 @@ def compare_reports(
     report_b: Path = typer.Argument(..., help="Second (older) report.json"),
 ) -> None:
     """Compare two scan reports and show the vulnerability delta."""
+    from pydantic import ValidationError as PydanticValidationError
+
     from ...models.result import ScanReport, Verdict
 
     for p in [report_a, report_b]:
@@ -62,8 +70,12 @@ def compare_reports(
             console.print(f"[red]Not found:[/red] {p}")
             raise typer.Exit(1)
 
-    a = ScanReport.model_validate_json(report_a.read_text(encoding="utf-8"))
-    b = ScanReport.model_validate_json(report_b.read_text(encoding="utf-8"))
+    try:
+        a = ScanReport.model_validate_json(report_a.read_text(encoding="utf-8"))
+        b = ScanReport.model_validate_json(report_b.read_text(encoding="utf-8"))
+    except (PydanticValidationError, ValueError) as e:
+        console.print(f"[red]Invalid report file:[/red] {e}")
+        raise typer.Exit(1) from None
 
     delta_risk = a.overall_risk_score - b.overall_risk_score
     delta_vuln = a.vulnerable - b.vulnerable

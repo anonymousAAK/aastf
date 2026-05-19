@@ -103,7 +103,9 @@ class OpenAIAgentsHarness:
     async def _run_with_oai_sdk(
         self, agent: Any, user_input: str, collector: TraceCollector
     ) -> None:
-        from agents import add_trace_processor
+        import contextlib
+
+        from agents import add_trace_processor, remove_trace_processor
 
         processor = AASFTracingProcessor(collector)
         add_trace_processor(processor)
@@ -111,8 +113,8 @@ class OpenAIAgentsHarness:
             result = await OAIRunner.run(agent, user_input)
             collector.set_final_output(str(result.final_output))
         finally:
-            # Remove processor after run
-            pass
+            with contextlib.suppress(Exception):
+                remove_trace_processor(processor)
 
     async def _run_stub(self, agent: Any, user_input: str, collector: TraceCollector) -> None:
         """Stub for when openai-agents SDK is not installed."""

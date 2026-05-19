@@ -59,6 +59,10 @@ class SandboxServer:
 
     # ---------------------------------------------------------------- public API
 
+    def set_port(self, port: int) -> None:
+        """Override the auto-assigned port before calling start()."""
+        self._port = port
+
     @property
     def base_url(self) -> str:
         return f"http://127.0.0.1:{self._port}"

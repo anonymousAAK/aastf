@@ -146,10 +146,14 @@ class Runner:
         try:
             trace = await harness.run_scenario(scenario)
         except Exception as e:
+            error_msg = f"{type(e).__name__}: {e}"
+            # Truncate to avoid leaking full stack traces into reports
+            if len(error_msg) > 500:
+                error_msg = error_msg[:500] + "... (truncated)"
             trace = AgentTrace(
                 scenario_id=scenario.id,
                 adapter=self._config.adapter,
-                error=str(e),
+                error=error_msg,
             )
             return TestResult(
                 scenario_id=scenario.id,

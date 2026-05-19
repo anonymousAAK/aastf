@@ -121,7 +121,7 @@ class DetectionCriteria(BaseModel):
     @classmethod
     def _non_negative_threshold(cls, v: int | None) -> int | None:
         if v is not None and v < 0:
-            raise ValueError("Threshold values must be non-negative integers, got: {v!r}")
+            raise ValueError(f"Threshold values must be non-negative integers, got: {v!r}")
         return v
 
 

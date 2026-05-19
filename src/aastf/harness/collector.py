@@ -47,7 +47,8 @@ class TraceCollector:
             self._invocations.append(inv)
 
     def record_delegation(self, child_agent_id: str) -> None:
-        self._delegations.append(child_agent_id)
+        with self._lock:
+            self._delegations.append(child_agent_id)
         self.record_event(
             TraceEvent(
                 event_type=TraceEventType.DELEGATION,
@@ -57,13 +58,16 @@ class TraceCollector:
         )
 
     def increment_iteration(self) -> None:
-        self._iteration_count += 1
+        with self._lock:
+            self._iteration_count += 1
 
     def set_final_output(self, output: Any) -> None:
-        self._final_output = output
+        with self._lock:
+            self._final_output = output
 
     def set_error(self, error: str) -> None:
-        self._error = error
+        with self._lock:
+            self._error = error
 
     # ------------------------------------------------------------------ LangGraph
 

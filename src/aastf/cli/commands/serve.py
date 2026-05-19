@@ -24,7 +24,7 @@ def serve(
         from ...sandbox.server import SandboxServer
 
         sandbox = SandboxServer()
-        sandbox._port = port  # override auto-assigned port
+        sandbox.set_port(port)
 
         if scenario_id:
             from ...scenarios.registry import ScenarioRegistry

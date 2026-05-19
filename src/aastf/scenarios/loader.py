@@ -63,12 +63,17 @@ def load_directory(path: Path) -> list[AttackScenario]:
         raise FileNotFoundError(f"Scenario directory not found: {path}")
     if not path.is_dir():
         raise NotADirectoryError(f"Not a directory: {path}")
+    resolved_root = path.resolve()
 
     scenarios: list[AttackScenario] = []
     errors: list[str] = []
 
     for yaml_file in sorted(path.rglob("*.yaml")):
         if yaml_file.name == "meta.yaml":
+            continue
+        # Guard against symlink escape: resolved file must stay within resolved root
+        if not yaml_file.resolve().is_relative_to(resolved_root):
+            errors.append(f"Symlink escape: {yaml_file} resolves outside {path}")
             continue
         try:
             scenarios.append(load_scenario(yaml_file))

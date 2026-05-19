@@ -82,8 +82,6 @@ class AASFCallbackHandler(BaseCallbackHandler):  # type: ignore[misc]
         duration = (time.monotonic() - start) * 1000 if start else None
         inputs_raw = self._tool_inputs.pop(key, "")
 
-        tool_name = kwargs.get("name", serialized_name := "unknown")  # noqa: F841
-        # Prefer kwargs['name'] (set by LangGraph >= 0.2 for named tools)
         tool_name = kwargs.get("name", "unknown")
 
         self._collector.record_invocation(

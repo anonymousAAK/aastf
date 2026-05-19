@@ -59,7 +59,7 @@ def score_finding(finding: VulnerabilityFinding) -> float:
     """
     if finding.verdict in (Verdict.SAFE, Verdict.INCONCLUSIVE, Verdict.ERROR):
         return 0.0
-    base = _BASE_SCORES.get(finding.severity, 5.0)
+    base = _BASE_SCORES[finding.severity]
     if finding.verdict == Verdict.REFUSAL_ECHO:
         return round(base * _REFUSAL_ECHO_DISCOUNT, 2)
     return base  # VULNERABLE

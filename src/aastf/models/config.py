@@ -26,4 +26,4 @@ class FrameworkConfig(BaseModel):
     timeout_seconds: float = 30.0
     max_iterations: int = 25
     run_variants: bool = False
-    parallel_workers: int = 1  # serial by default; Week 10 adds parallelism
+    parallel_workers: int = 1
