@@ -123,14 +123,14 @@ class TestPackageStructure:
         assert not missing, f"Missing __init__.py in Python package dirs: {missing}"
 
     def test_builtin_scenarios_exist(self):
-        """Hypothesis: All 10 ASI category directories exist with 5 scenarios each."""
+        """Hypothesis: All 10 ASI category directories exist with >= 5 scenarios each."""
         builtin = REPO_ROOT / "src" / "aastf" / "scenarios" / "builtin"
         for cat in [f"asi{str(i).zfill(2)}" for i in range(1, 11)]:
             cat_dir = builtin / cat
             assert cat_dir.exists(), f"Missing builtin directory: {cat}"
             yaml_files = list(cat_dir.glob("*.yaml"))
-            assert len(yaml_files) == 5, (
-                f"{cat} has {len(yaml_files)} scenarios, expected 5"
+            assert len(yaml_files) >= 5, (
+                f"{cat} has {len(yaml_files)} scenarios, expected >= 5"
             )
 
 

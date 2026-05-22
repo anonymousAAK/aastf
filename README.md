@@ -6,7 +6,7 @@
 [![CI](https://github.com/anonymousAAK/aastf/actions/workflows/ci.yml/badge.svg)](https://github.com/anonymousAAK/aastf/actions)
 [![PyPI](https://img.shields.io/pypi/v/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
 [![Downloads](https://img.shields.io/pypi/dm/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
-[![Tests](https://img.shields.io/badge/tests-313%20passed-brightgreen)](TESTING.md)
+[![Tests](https://img.shields.io/badge/tests-823%20passed-brightgreen)](TESTING.md)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20296480.svg)](https://doi.org/10.5281/zenodo.20296480)
@@ -78,7 +78,7 @@ pip install "aastf[langgraph]"
 ```
 
 ```bash
-# Scan your agent against all 50 built-in OWASP ASI scenarios
+# Scan your agent against all 100+ built-in OWASP ASI scenarios
 aastf run myapp.agent:create_agent --adapter langgraph
 
 # Target specific categories
@@ -105,7 +105,7 @@ def create_agent(tools: list):
 
 ## What AASTF Tests
 
-50 built-in attack scenarios mapped to the [OWASP Top 10 for Agentic Applications (December 2025)][owasp-asi]:
+100+ built-in attack scenarios mapped to the [OWASP Top 10 for Agentic Applications (December 2025)][owasp-asi]:
 
 | Code | Threat | Example Attack |
 |------|--------|---------------|
@@ -127,7 +127,7 @@ def create_agent(tools: list):
 ```
 Your Agent                     AASTF
 -----------                    ------
-                               1. Loads 50 attack scenarios
+                               1. Loads 100+ attack scenarios
                                2. Starts sandbox server (real HTTP, no side effects)
 graph.astream_events() ------> 3. Instruments execution via LangGraph callback bus
   on_tool_start               4. Injects adversarial payload at configured point
@@ -183,7 +183,7 @@ Findings appear natively in your repository's **Security** tab.
 ```bash
 aastf run <agent_module>                    # Full scan
 aastf run . --dry-run                       # Preview scenarios
-aastf scenario list                         # Browse all 50 scenarios
+aastf scenario list                         # Browse all 100+ scenarios
 aastf scenario list --category ASI02 --severity CRITICAL
 aastf scenario validate ./my-scenario.yaml  # Validate before adding
 aastf scenario show ASI02-001               # Full scenario details
@@ -229,6 +229,29 @@ aastf run myapp.agent:create_agent --scenario-dir ./my-scenarios
 
 ---
 
+## MCP Security Testing
+
+AASTF v0.5.0 introduces comprehensive MCP (Model Context Protocol) security testing with 25 dedicated scenarios covering:
+
+| Category | Scenarios | Attacks Tested |
+|----------|-----------|----------------|
+| MCP01 — Tool Signature Poisoning | 3 | Description injection, name collision, schema poisoning |
+| MCP02 — Tool Parameter Manipulation | 3 | Type confusion, extra param injection, default poisoning |
+| MCP03 — Tool Response Injection | 3 | Prompt injection via response, chaining attacks, malformed responses |
+| MCP04 — Resource Injection | 3 | Poisoned resources, URI traversal, cross-server confusion |
+| MCP05 — MCPSecBench Coverage | 5 | Full-schema poisoning, preference manipulation, server impersonation |
+| MCP06 — OWASP MCP Top 10 | 8 | Rug pulls, shadowing, sampling abuse, consent fatigue |
+
+Additionally, 8 real-world CVE-derived scenarios and system prompt extraction + memory poisoning scenarios.
+
+Run MCP-specific scans:
+
+```bash
+aastf run --adapter mcp --agent-factory your_agent:factory
+```
+
+---
+
 ## EU AI Act Readiness
 
 AASTF maps findings to EU AI Act readiness (August 2026 deadline):
@@ -250,7 +273,7 @@ They signal output sanitization obligations under Article 15, not Article 9 risk
 Layer 5: Platform   [Public Benchmark + Enterprise Cloud — coming]
 Layer 4: Reporting   JSON . SARIF . HTML . Compliance
 Layer 3: Sandbox     FastAPI Mock Backend . Real HTTP Calls
-Layer 2: Scenarios   YAML Registry . 50 OWASP ASI Attack Scenarios
+Layer 2: Scenarios   YAML Registry . 100+ OWASP ASI Attack Scenarios
 Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
            LangGraph    OpenAI Agents    CrewAI    PydanticAI
 ```
@@ -268,7 +291,7 @@ Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
 
 ## Test Results
 
-**313 tests · 0 failures · 0 warnings · lint clean**
+**823 tests · 0 failures · 0 warnings · lint clean**
 
 | Suite | Tests | What it covers |
 |-------|-------|---------------|
@@ -284,7 +307,7 @@ Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
 | `test_scoring` | 24 | CVSS scoring, EU AI Act readiness, REFUSAL_ECHO 35% discount |
 | `test_scoring_hypothesis` | 7 | Property-based: score always in [0,100], REFUSAL_ECHO <= VULNERABLE |
 | `test_trend_tracker` | 16 | SQLite trend DB record, retrieve, compare, trend direction |
-| `test_scenario_coverage` | 18 | Self-audit: 50 scenarios structurally valid, 5/category |
+| `test_scenario_coverage` | 18 | Self-audit: 65 scenarios structurally valid, >= 5/category |
 
 Full test list: [TESTING.md](TESTING.md)
 

@@ -36,3 +36,5 @@ references:
   - "https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/#asi07"
 author: aastf-core
 version: "1.0"
+cwe_ids: ["CWE-319", "CWE-345"]
+nist_ai_rmf: ["GOVERN-1.2", "MAP-3.5", "MANAGE-2.2"]

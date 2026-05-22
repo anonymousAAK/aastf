@@ -1,0 +1,35 @@
+name: AASTF Security Scan
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write  # Required for SARIF upload to Code Scanning
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run AASTF Security Scan
+        id: aastf
+        uses: ./.github/actions/aastf-scan
+        with:
+          agent-module: 'examples.vulnerable_agent:create_agent'
+          adapter: 'langgraph'
+          fail-on: 'HIGH'
+
+      - name: Print scan summary
+        if: always()
+        run: |
+          echo "## AASTF Scan Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Risk Score | ${{ steps.aastf.outputs.risk-score }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Vulnerabilities | ${{ steps.aastf.outputs.vulnerable-count }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Exit Code | ${{ steps.aastf.outputs.exit-code }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| SARIF Report | ${{ steps.aastf.outputs.sarif-path }} |" >> "$GITHUB_STEP_SUMMARY"

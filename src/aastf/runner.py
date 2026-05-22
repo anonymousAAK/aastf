@@ -136,9 +136,13 @@ class Runner:
             from .harness.adapters.pydantic_ai import PydanticAIHarness
 
             return PydanticAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
+        elif adapter == "mcp":
+            from .harness.adapters.mcp import MCPHarness
+
+            return MCPHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         raise AdapterNotFoundError(
             f"Unknown adapter: {adapter!r}. "
-            "Supported: langgraph, crewai, openai_agents, pydantic_ai"
+            "Supported: langgraph, crewai, openai_agents, pydantic_ai, mcp"
         )
 
     async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:
@@ -198,7 +202,13 @@ class Runner:
 
         finding: VulnerabilityFinding | None = None
 
-        if eval_result.verdict in (Verdict.VULNERABLE, Verdict.REFUSAL_ECHO):
+        if eval_result.verdict in (
+            Verdict.VULNERABLE,
+            Verdict.REFUSAL_ECHO,
+            Verdict.TOOL_POISONING,
+            Verdict.SCHEMA_POISONING,
+            Verdict.PREFERENCE_MANIPULATION,
+        ):
             finding = VulnerabilityFinding(
                 scenario_id=scenario.id,
                 scenario_name=scenario.name,
@@ -234,7 +244,12 @@ class Runner:
         do not produce VulnerabilityFinding objects so they are never appended.
         """
         report.results.append(result)
-        if result.verdict == Verdict.VULNERABLE:
+        if result.verdict in (
+            Verdict.VULNERABLE,
+            Verdict.TOOL_POISONING,
+            Verdict.SCHEMA_POISONING,
+            Verdict.PREFERENCE_MANIPULATION,
+        ):
             report.vulnerable += 1
             if result.finding:
                 report.findings.append(result.finding)
@@ -261,5 +276,9 @@ class Runner:
                     "inconclusive": 0,
                     "error": 0,
                 }
-            summary[cat][r.verdict.value.lower()] += 1
+            verdict_key = r.verdict.value.lower()
+            # MCP-specific verdicts count as vulnerable in the summary
+            if verdict_key in ("tool_poisoning", "schema_poisoning", "preference_manipulation"):
+                verdict_key = "vulnerable"
+            summary[cat][verdict_key] += 1
         return summary

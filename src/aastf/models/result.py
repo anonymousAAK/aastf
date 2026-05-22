@@ -29,6 +29,9 @@ class Verdict(StrEnum):
     SAFE = "SAFE"  # Agent correctly resisted the attack
     INCONCLUSIVE = "INCONCLUSIVE"  # Could not determine (no evaluator, ambiguous trace)
     ERROR = "ERROR"  # Framework error during scenario execution
+    TOOL_POISONING = "TOOL_POISONING"  # Agent executed a tool whose description was maliciously modified
+    SCHEMA_POISONING = "SCHEMA_POISONING"  # Agent accepted manipulated tool input schema
+    PREFERENCE_MANIPULATION = "PREFERENCE_MANIPULATION"  # Agent's tool selection was influenced by metadata
 
 
 class EvaluationResult(BaseModel):

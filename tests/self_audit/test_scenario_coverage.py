@@ -22,13 +22,13 @@ def registry() -> ScenarioRegistry:
 
 
 class TestScenarioCoverage:
-    def test_exactly_fifty_scenarios(self, registry):
-        assert len(registry) == 50, f"Expected 50 scenarios, got {len(registry)}"
+    def test_at_least_65_scenarios(self, registry):
+        assert len(registry) >= 65, f"Expected >= 65 scenarios, got {len(registry)}"
 
-    def test_five_per_category(self, registry):
+    def test_at_least_five_per_category(self, registry):
         for cat in ASICategory:
             count = len(registry.filter(categories=[cat]))
-            assert count == 5, f"{cat.value} has {count} scenarios, expected 5"
+            assert count >= 5, f"{cat.value} has {count} scenarios, expected >= 5"
 
     def test_all_ids_unique(self, registry):
         ids = [s.id for s in registry.all()]
@@ -38,11 +38,18 @@ class TestScenarioCoverage:
 
     def test_all_ids_match_category(self, registry):
         for s in registry.all():
-            expected_prefix = s.category.value  # e.g. "ASI02"
-            assert s.id.startswith(expected_prefix), (
-                f"Scenario {s.id} is in category {s.category.value} "
-                f"but ID doesn't start with {expected_prefix}"
-            )
+            # ASI-prefixed IDs must match their category; MCP/CVE IDs are cross-category
+            if s.id.startswith("ASI"):
+                expected_prefix = s.category.value  # e.g. "ASI02"
+                assert s.id.startswith(expected_prefix), (
+                    f"Scenario {s.id} is in category {s.category.value} "
+                    f"but ID doesn't start with {expected_prefix}"
+                )
+            else:
+                # MCP and CVE scenarios map to ASI categories but use their own ID prefix
+                assert s.id[:3] in ("MCP", "CVE"), (
+                    f"Scenario {s.id} has unknown ID prefix"
+                )
 
     def test_all_have_non_empty_remediation(self, registry):
         empty = [s.id for s in registry.all() if not s.remediation.strip()]
@@ -134,4 +141,4 @@ class TestScenarioRegistry:
         assert s.category == ASICategory.ASI01
 
     def test_all_returns_full_list(self, registry):
-        assert len(registry.all()) == 50
+        assert len(registry.all()) >= 65

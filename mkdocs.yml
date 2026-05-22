@@ -1,0 +1,44 @@
+site_name: AASTF Documentation
+site_url: https://anonymousAAK.github.io/aastf
+repo_url: https://github.com/anonymousAAK/aastf
+repo_name: anonymousAAK/aastf
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: red
+      accent: red
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: red
+      accent: red
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.sections
+    - content.code.copy
+    - search.highlight
+
+nav:
+  - Home: index.md
+  - Quick Start: quickstart.md
+  - Configuration: configuration.md
+  - GitHub Action: github-action.md
+  - Security Testing:
+    - MCP Security: mcp-security.md
+    - CVE Scenarios: cve-scenarios.md
+  - Compliance:
+    - EU AI Act: compliance.md
+  - About:
+    - Security Policy: https://github.com/anonymousAAK/aastf/blob/master/SECURITY.md
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - admonition
+  - tables

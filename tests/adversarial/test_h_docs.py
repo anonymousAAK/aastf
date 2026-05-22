@@ -29,24 +29,24 @@ README = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 class TestScenarioCounts:
     """H1, H3: Scenario count claims."""
 
-    def test_readme_claims_50_scenarios(self):
-        """Hypothesis: README says '50 built-in attack scenarios'."""
-        assert "50" in README and "scenario" in README.lower()
+    def test_readme_claims_100_plus_scenarios(self):
+        """Hypothesis: README says '100+ built-in attack scenarios'."""
+        assert "100+" in README and "scenario" in README.lower()
 
-    def test_actual_scenario_count_is_50(self):
-        """Hypothesis: The actual loader returns exactly 50 scenarios."""
+    def test_actual_scenario_count_at_least_65(self):
+        """Hypothesis: The actual loader returns at least 65 scenarios (50 base + 15 MCP)."""
         from aastf.scenarios.registry import ScenarioRegistry
         registry = ScenarioRegistry().load_builtin()
-        assert len(registry) == 50
+        assert len(registry) >= 65, f"Expected >= 65 scenarios, got {len(registry)}"
 
-    def test_five_per_category(self):
-        """Hypothesis: Exactly 5 scenarios per ASI category."""
+    def test_at_least_five_per_category(self):
+        """Hypothesis: At least 5 scenarios per ASI category."""
         from aastf.models.scenario import ASICategory
         from aastf.scenarios.registry import ScenarioRegistry
         registry = ScenarioRegistry().load_builtin()
         for cat in ASICategory:
             count = len(registry.filter(categories=[cat]))
-            assert count == 5, f"Expected 5 for {cat}, got {count}"
+            assert count >= 5, f"Expected >= 5 for {cat}, got {count}"
 
 
 # --------------------------------------------------------------------------- H2
@@ -58,8 +58,8 @@ class TestTestCount:
         Hypothesis (BUG-14 FIXED): README badge now shows 313, matching the actual
         test suite count. The stale "305" badge has been updated.
         """
-        assert "313" in README, (
-            "BUG-14 FIX VERIFIED: README badge should show 313 tests"
+        assert "823" in README, (
+            "BUG-14 FIX VERIFIED: README badge should show 823 tests"
         )
         assert "305" not in README, (
             "Old stale badge '305' should be removed from README"
@@ -73,7 +73,7 @@ class TestTestCount:
         import sys
 
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", "tests/unit/", "tests/self_audit/",
+            [sys.executable, "-m", "pytest", "tests/",
              "--collect-only", "-q"],
             capture_output=True,
             text=True,

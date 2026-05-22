@@ -20,7 +20,7 @@ from jinja2 import BaseLoader
 from jinja2.sandbox import SandboxedEnvironment
 
 from ..exceptions import SandboxStartError
-from ..models.scenario import AttackScenario, ToolResponseConfig
+from ..models.scenario import AttackScenario, MCPResourceConfig, ToolResponseConfig
 from .interceptor import InterceptedCall, RequestInterceptor
 
 _jinja = SandboxedEnvironment(loader=BaseLoader(), autoescape=True)
@@ -52,6 +52,7 @@ class SandboxServer:
         self._port: int = _find_free_port()
         self._interceptor = RequestInterceptor()
         self._response_configs: dict[str, ToolResponseConfig] = {}
+        self._mcp_resources: dict[str, MCPResourceConfig] = {}
         self._server: uvicorn.Server | None = None
         self._task: asyncio.Task | None = None  # type: ignore[type-arg]
         self._rate_limit_log: dict[str, list[float]] = {}  # tool_name -> list of timestamps
@@ -74,6 +75,7 @@ class SandboxServer:
     def configure_for_scenario(self, scenario: AttackScenario) -> None:
         """Load scenario's tool response configs and reset the call log."""
         self._response_configs = {tc.tool_name: tc for tc in scenario.tool_responses}
+        self._mcp_resources = {r.uri: r for r in scenario.mcp_resources}
         self._interceptor.reset()
 
     # ----------------------------------------------------------------- lifecycle
@@ -129,6 +131,114 @@ class SandboxServer:
                 "port": sandbox._port,
                 "calls": sandbox._interceptor.total_calls(),
             }
+
+        # -------------------------------------------------------- MCP endpoints
+
+        @app.post("/mcp/tools/list")
+        async def mcp_tools_list(request: Request) -> JSONResponse:
+            """Return tool descriptions — may contain poisoned descriptions from scenario config."""
+            tools: list[dict[str, Any]] = []
+            for tc in sandbox._response_configs.values():
+                tool_entry: dict[str, Any] = {"name": tc.tool_name}
+                if tc.tool_description is not None:
+                    tool_entry["description"] = tc.tool_description
+                else:
+                    tool_entry["description"] = f"Tool: {tc.tool_name}"
+                if tc.tool_input_schema is not None:
+                    tool_entry["inputSchema"] = tc.tool_input_schema
+                else:
+                    tool_entry["inputSchema"] = {
+                        "type": "object",
+                        "properties": {"query": {"type": "string"}},
+                    }
+                tools.append(tool_entry)
+            return JSONResponse({"tools": tools})
+
+        @app.post("/mcp/tools/call")
+        async def mcp_tools_call(request: Request) -> Response:
+            """Execute a tool with intercepted params via MCP protocol."""
+            try:
+                body: dict = await request.json()
+            except Exception:
+                return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+            tool_name = body.get("name", "")
+            arguments = body.get("arguments", {})
+
+            config = sandbox._response_configs.get(tool_name)
+
+            t0 = time.monotonic()
+
+            # Apply delay
+            if config and config.delay_seconds > 0:
+                await asyncio.sleep(config.delay_seconds)
+
+            # Error mode
+            if config and config.response_mode == "error":
+                resp_body = {"error": f"Simulated failure for {tool_name}", "code": 500}
+                await sandbox._interceptor.record(
+                    InterceptedCall(
+                        tool_name=tool_name,
+                        request_body=arguments,
+                        response_body=resp_body,
+                        status_code=500,
+                        duration_ms=(time.monotonic() - t0) * 1000,
+                    )
+                )
+                return JSONResponse(resp_body, status_code=500)
+
+            # Malformed mode
+            if config and config.response_mode == "malformed":
+                raw = "not{valid[json"
+                await sandbox._interceptor.record(
+                    InterceptedCall(
+                        tool_name=tool_name,
+                        request_body=arguments,
+                        response_body=raw,
+                        status_code=200,
+                        duration_ms=(time.monotonic() - t0) * 1000,
+                    )
+                )
+                return PlainTextResponse(raw, status_code=200)
+
+            # Success mode
+            if config and config.response_payload is not None:
+                rendered = sandbox._render(config.response_payload, arguments)
+            else:
+                rendered = {"status": "ok", "tool": tool_name, "result": None}
+
+            await sandbox._interceptor.record(
+                InterceptedCall(
+                    tool_name=tool_name,
+                    request_body=arguments,
+                    response_body=rendered,
+                    status_code=200,
+                    duration_ms=(time.monotonic() - t0) * 1000,
+                )
+            )
+            return JSONResponse({"content": [{"type": "text", "text": str(rendered)}]})
+
+        @app.post("/mcp/resources/read")
+        async def mcp_resources_read(request: Request) -> JSONResponse:
+            """Resource retrieval with injection surface."""
+            try:
+                body: dict = await request.json()
+            except Exception:
+                return JSONResponse({"error": "Invalid JSON"}, status_code=400)
+
+            uri = body.get("uri", "")
+            resource = sandbox._mcp_resources.get(uri)
+            if resource is None:
+                return JSONResponse(
+                    {"error": f"Resource not found: {uri}"}, status_code=404
+                )
+            return JSONResponse({
+                "uri": resource.uri,
+                "mimeType": resource.mime_type,
+                "content": resource.content,
+            })
+
+        # -------------------------------------------------------- tool endpoints
 
         @app.post("/tools/{tool_name}")
         async def handle_tool(tool_name: str, request: Request) -> Response:

@@ -1,0 +1,188 @@
+name: 'AASTF Security Scan'
+description: 'Run AASTF agentic AI security testing against your agent and upload SARIF results'
+branding:
+  icon: 'shield'
+  color: 'red'
+
+inputs:
+  agent-module:
+    description: 'Dotted path to agent factory (e.g. myapp.agent:create_agent)'
+    required: true
+  adapter:
+    description: 'Framework adapter (langgraph, crewai, openai_agents, pydantic_ai)'
+    required: false
+    default: 'langgraph'
+  categories:
+    description: 'ASI categories to test (comma-separated, e.g. ASI01,ASI02). Empty = all'
+    required: false
+    default: ''
+  fail-on:
+    description: 'Minimum severity to fail the check (CRITICAL, HIGH, MEDIUM, LOW, INFO)'
+    required: false
+    default: 'HIGH'
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.12'
+  aastf-version:
+    description: 'AASTF version to install (e.g. 0.4.1, latest)'
+    required: false
+    default: 'latest'
+  upload-sarif:
+    description: 'Upload SARIF to GitHub Code Scanning'
+    required: false
+    default: 'true'
+  extra-args:
+    description: 'Additional arguments to pass to aastf run'
+    required: false
+    default: ''
+
+outputs:
+  report-path:
+    description: 'Path to the JSON report'
+    value: ${{ steps.find-reports.outputs.report-path }}
+  sarif-path:
+    description: 'Path to the SARIF report'
+    value: ${{ steps.find-reports.outputs.sarif-path }}
+  risk-score:
+    description: 'Overall risk score (0-100)'
+    value: ${{ steps.extract-metrics.outputs.risk-score }}
+  vulnerable-count:
+    description: 'Number of vulnerable findings'
+    value: ${{ steps.extract-metrics.outputs.vulnerable-count }}
+  exit-code:
+    description: 'AASTF exit code (0=safe, 1=findings, 2=error)'
+    value: ${{ steps.run-scan.outputs.exit-code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install AASTF
+      shell: bash
+      run: |
+        if [ "${{ inputs.aastf-version }}" = "latest" ]; then
+          pip install aastf
+        else
+          pip install "aastf==${{ inputs.aastf-version }}"
+        fi
+
+    - name: Build category flags
+      id: build-flags
+      shell: bash
+      run: |
+        CATEGORY_FLAGS=""
+        if [ -n "${{ inputs.categories }}" ]; then
+          IFS=',' read -ra CATS <<< "${{ inputs.categories }}"
+          for cat in "${CATS[@]}"; do
+            cat_trimmed="$(echo "$cat" | xargs)"
+            if [ -n "$cat_trimmed" ]; then
+              CATEGORY_FLAGS="$CATEGORY_FLAGS --category $cat_trimmed"
+            fi
+          done
+        fi
+        echo "category-flags=$CATEGORY_FLAGS" >> "$GITHUB_OUTPUT"
+
+    - name: Run AASTF scan
+      id: run-scan
+      shell: bash
+      run: |
+        set +e
+        aastf run "${{ inputs.agent-module }}" \
+          --adapter "${{ inputs.adapter }}" \
+          --format console json sarif \
+          --fail-on "${{ inputs.fail-on }}" \
+          ${{ steps.build-flags.outputs.category-flags }} \
+          ${{ inputs.extra-args }}
+        EXIT_CODE=$?
+        set -e
+
+        echo "exit-code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+        # Exit code 2 means framework error — fail immediately
+        if [ "$EXIT_CODE" -eq 2 ]; then
+          echo "::error::AASTF scan encountered an error (exit code 2)"
+          exit 2
+        fi
+
+    - name: Find report paths
+      id: find-reports
+      shell: bash
+      run: |
+        # Find the most recent run directory under aastf-results/
+        RUN_DIR=$(ls -dt aastf-results/run-* 2>/dev/null | head -1)
+
+        if [ -z "$RUN_DIR" ]; then
+          echo "::warning::No aastf-results directory found"
+          echo "report-path=" >> "$GITHUB_OUTPUT"
+          echo "sarif-path=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        REPORT_PATH="$RUN_DIR/report.json"
+        SARIF_PATH="$RUN_DIR/results.sarif"
+
+        if [ -f "$REPORT_PATH" ]; then
+          echo "report-path=$REPORT_PATH" >> "$GITHUB_OUTPUT"
+        else
+          echo "::warning::JSON report not found at $REPORT_PATH"
+          echo "report-path=" >> "$GITHUB_OUTPUT"
+        fi
+
+        if [ -f "$SARIF_PATH" ]; then
+          echo "sarif-path=$SARIF_PATH" >> "$GITHUB_OUTPUT"
+        else
+          echo "::warning::SARIF report not found at $SARIF_PATH"
+          echo "sarif-path=" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Extract metrics from JSON report
+      id: extract-metrics
+      shell: bash
+      run: |
+        REPORT_PATH="${{ steps.find-reports.outputs.report-path }}"
+        if [ -z "$REPORT_PATH" ] || [ ! -f "$REPORT_PATH" ]; then
+          echo "risk-score=0" >> "$GITHUB_OUTPUT"
+          echo "vulnerable-count=0" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        python3 -c "
+        import json, sys
+        with open('$REPORT_PATH') as f:
+            report = json.load(f)
+        print(f\"risk-score={report.get('overall_risk_score', 0)}\")
+        print(f\"vulnerable-count={report.get('vulnerable', 0)}\")
+        " >> "$GITHUB_OUTPUT"
+
+    - name: Upload SARIF to GitHub Code Scanning
+      if: inputs.upload-sarif == 'true' && steps.find-reports.outputs.sarif-path != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.find-reports.outputs.sarif-path }}
+        category: aastf-security-scan
+      continue-on-error: true
+
+    - name: Upload reports as artifacts
+      if: steps.find-reports.outputs.report-path != '' || steps.find-reports.outputs.sarif-path != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: aastf-reports
+        path: aastf-results/
+        retention-days: 30
+      continue-on-error: true
+
+    - name: Fail on findings
+      shell: bash
+      run: |
+        EXIT_CODE="${{ steps.run-scan.outputs.exit-code }}"
+        if [ "$EXIT_CODE" -eq 1 ]; then
+          VULN_COUNT="${{ steps.extract-metrics.outputs.vulnerable-count }}"
+          RISK_SCORE="${{ steps.extract-metrics.outputs.risk-score }}"
+          echo "::error::AASTF found $VULN_COUNT vulnerability finding(s) at or above ${{ inputs.fail-on }} severity (risk score: $RISK_SCORE)"
+          exit 1
+        fi

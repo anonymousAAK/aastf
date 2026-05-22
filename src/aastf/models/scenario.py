@@ -72,6 +72,14 @@ class InjectionPoint(StrEnum):
     SYSTEM_PROMPT = "system_prompt"
 
 
+class MCPResourceConfig(BaseModel):
+    """Defines an MCP resource served by the sandbox for resource-based attacks."""
+
+    uri: str
+    content: str
+    mime_type: str = "text/plain"
+
+
 class ToolResponseConfig(BaseModel):
     """Defines what the sandbox returns when a specific tool is called."""
 
@@ -81,6 +89,8 @@ class ToolResponseConfig(BaseModel):
     response_mode: Literal["success", "error", "malformed", "delayed"] = "success"
     delay_seconds: float = 0.0
     call_count_limit: int | None = None  # only respond this way on first N calls
+    tool_description: str | None = None  # used for schema poisoning scenarios
+    tool_input_schema: dict[str, Any] | None = None  # used for schema extension attacks
 
     @field_validator("delay_seconds")
     @classmethod
@@ -157,6 +167,8 @@ class AttackScenario(BaseModel):
     tool_responses: list[ToolResponseConfig] = Field(default_factory=list)
     # Tools available to the agent during this test
     available_tools: list[str] = Field(default_factory=list)
+    # MCP resource definitions served by the sandbox
+    mcp_resources: list[MCPResourceConfig] = Field(default_factory=list)
 
     # How to determine pass/fail
     detection: DetectionCriteria
@@ -169,11 +181,16 @@ class AttackScenario(BaseModel):
     author: str = "aastf-core"
     version: str = "1.0"
 
+    # Compliance mapping metadata
+    cwe_ids: list[str] = Field(default_factory=list)
+    nist_ai_rmf: list[str] = Field(default_factory=list)
+
     @field_validator("id")
     @classmethod
     def id_format(cls, v: str) -> str:
-        if not re.match(r"^ASI\d{2}-\d{3}$", v):
+        if not re.match(r"^(ASI|MCP|CVE)\d{2}-\d{3}$", v):
             raise ValueError(
-                f"Scenario ID must match ASI##-### format (e.g. ASI02-001), got: {v!r}"
+                f"Scenario ID must match ASI##-###, MCP##-###, or CVE##-### format "
+                f"(e.g. ASI02-001), got: {v!r}"
             )
         return v

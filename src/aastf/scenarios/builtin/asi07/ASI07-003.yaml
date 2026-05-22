@@ -37,3 +37,5 @@ references:
   - "https://proceedings.neurips.cc/paper_files/paper/2024/file/861f7dad098aec1c3560fb7add468d41-Paper-Conference.pdf"
 author: aastf-core
 version: "1.0"
+cwe_ids: ["CWE-319", "CWE-345"]
+nist_ai_rmf: ["GOVERN-1.2", "MAP-3.5", "MANAGE-2.2"]

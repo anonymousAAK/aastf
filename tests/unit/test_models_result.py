@@ -6,8 +6,8 @@ from aastf.models.trace import AgentTrace
 
 
 class TestVerdict:
-    def test_all_five_verdicts(self):
-        assert len(list(Verdict)) == 5
+    def test_all_eight_verdicts(self):
+        assert len(list(Verdict)) == 8
 
     def test_verdict_values(self):
         assert Verdict.VULNERABLE.value == "VULNERABLE"

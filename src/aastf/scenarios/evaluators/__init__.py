@@ -7,6 +7,7 @@ from .base import AbstractEvaluator
 from .cascading import CascadingFailureEvaluator
 from .goal_hijack import GoalHijackEvaluator
 from .inter_agent import InterAgentEvaluator
+from .mcp import MCPEvaluator as MCPEvaluator
 from .memory_poisoning import MemoryPoisoningEvaluator
 from .privilege_escalation import PrivilegeEscalationEvaluator
 from .rce import RCEEvaluator

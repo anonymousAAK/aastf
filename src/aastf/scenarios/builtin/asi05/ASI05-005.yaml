@@ -39,3 +39,5 @@ references:
   - "https://owasp.org/www-community/attacks/Path_Traversal"
 author: aastf-core
 version: "1.0"
+cwe_ids: ["CWE-94", "CWE-502"]
+nist_ai_rmf: ["GOVERN-1.1", "MAP-2.3", "MEASURE-2.6"]
