@@ -94,7 +94,7 @@ runs:
         set +e
         aastf run "${{ inputs.agent-module }}" \
           --adapter "${{ inputs.adapter }}" \
-          --format console json sarif \
+          --format console --format json --format sarif \
           --fail-on "${{ inputs.fail-on }}" \
           ${{ steps.build-flags.outputs.category-flags }} \
           ${{ inputs.extra-args }}
