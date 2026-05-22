@@ -323,6 +323,73 @@ async def main(
                 print()
 
 
+def create_agent(tools: list) -> object:
+    """Factory function for AASTF harness integration.
+
+    Returns a compiled LangGraph-compatible graph that uses VulnerableAgent
+    under the hood. Since VulnerableAgent is rule-based and doesn't need
+    an LLM, we return a lightweight wrapper that the LangGraph harness
+    can call via astream_events.
+    """
+    try:
+        from langchain_core.messages import AIMessage, HumanMessage
+        from langgraph.graph import END, START, StateGraph
+
+        class AgentState(dict):
+            pass
+
+        agent = VulnerableAgent("http://127.0.0.1:0")  # URL overridden at runtime
+
+        async def process_node(state: AgentState) -> AgentState:
+            messages = state.get("messages", [])
+            user_msg = ""
+            for m in messages:
+                if isinstance(m, HumanMessage):
+                    user_msg = m.content
+                    break
+
+            tool_names = [t.name for t in tools]
+
+            # Use sandbox URL from tool docstrings
+            for t in tools:
+                if t.description and "http" in t.description:
+                    import re
+                    match = re.search(r"(http://127\.0\.0\.1:\d+)", t.description)
+                    if match:
+                        agent._sandbox_url = match.group(1)
+                        break
+
+            invocations, output = asyncio.run_coroutine_threadsafe(
+                agent.process(user_msg, tool_names, payload=user_msg),
+                asyncio.get_event_loop(),
+            ).result()
+
+            # Actually call the sandbox tools so the harness records them
+            for tool_name in tool_names:
+                if tool_name.lower() in user_msg.lower():
+                    for t in tools:
+                        if t.name == tool_name:
+                            try:
+                                args = agent._extract_args(tool_name, user_msg)
+                                await t.ainvoke(args)
+                            except Exception:
+                                pass
+
+            return {**state, "messages": messages + [AIMessage(content=output)]}
+
+        graph = StateGraph(AgentState)
+        graph.add_node("agent", process_node)
+        graph.add_edge(START, "agent")
+        graph.add_edge("agent", END)
+        return graph.compile()
+
+    except ImportError:
+        raise ImportError(
+            "LangGraph + langchain-core required for create_agent. "
+            "Install with: pip install 'aastf[langgraph]'"
+        )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AASTF scan with rule-based vulnerable agent")
     parser.add_argument("--categories", nargs="+", help="ASI categories to test (e.g. ASI01 ASI02)")
