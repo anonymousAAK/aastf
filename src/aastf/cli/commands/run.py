@@ -89,6 +89,16 @@ def run(
             "or above. Use this for strict output sanitization gates."
         ),
     ),
+    no_cache: bool = typer.Option(
+        False,
+        "--no-cache",
+        help="Disable response cache (re-run all scenarios from scratch)",
+    ),
+    clear_cache: bool = typer.Option(
+        False,
+        "--clear-cache",
+        help="Clear the response cache before running",
+    ),
 ) -> None:
     """Execute a security scan against an agent system."""
     from ...models.config import FrameworkConfig
@@ -124,7 +134,15 @@ def run(
         _dry_run(config)
         return
 
-    report = asyncio.run(_execute(config))
+    # Handle cache flags
+    from ...cache import ResponseCache
+
+    cache = ResponseCache(enabled=not no_cache)
+    if clear_cache:
+        cleared = cache.clear()
+        console.print(f"[dim]Cleared {cleared} cached response(s)[/dim]")
+
+    report = asyncio.run(_execute(config, cache))
 
     # Write reports
     run_dir = Path(output_dir) / f"run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -179,7 +197,8 @@ def _dry_run(config: FrameworkConfig) -> None:
     console.print(table)
 
 
-async def _execute(config: FrameworkConfig):
+async def _execute(config: FrameworkConfig, cache=None):
+    from ...cache import ResponseCache
     from ...reporting.console_reporter import ConsoleReporter
     from ...runner import Runner
 
@@ -199,8 +218,16 @@ async def _execute(config: FrameworkConfig):
 
     reporter.print_header(config.adapter, len(scenarios))
 
-    runner = Runner(config)
+    if cache is None:
+        cache = ResponseCache(enabled=False)
+
+    runner = Runner(config, cache=cache)
     report = await runner.run()
+
+    if cache.enabled:
+        console.print(
+            f"[dim]Cache: {cache.hits} hits, {cache.misses} misses[/dim]"
+        )
 
     if "console" in config.report_formats:
         reporter.print_report(report)

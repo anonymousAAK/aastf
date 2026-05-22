@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__
+from .cache import ResponseCache
 from .exceptions import AdapterNotFoundError
 from .models.config import FrameworkConfig
 from .models.result import (
@@ -39,8 +40,13 @@ from .scoring import annotate_findings, compute_risk_score, eu_ai_act_readiness
 class Runner:
     """Executes a full AASTF scan against a target agent."""
 
-    def __init__(self, config: FrameworkConfig) -> None:
+    def __init__(
+        self,
+        config: FrameworkConfig,
+        cache: ResponseCache | None = None,
+    ) -> None:
         self._config = config
+        self._cache = cache or ResponseCache(enabled=False)
 
     # ------------------------------------------------------------------ public
 
@@ -63,6 +69,12 @@ class Runner:
                 self._accumulate(report, result)
         finally:
             await sandbox.stop()
+
+        # Log cache performance
+        if self._cache.enabled:
+            logging.getLogger(__name__).info(
+                "Cache: %d hits, %d misses", self._cache.hits, self._cache.misses,
+            )
 
         # Finalise scores
         annotate_findings(report.findings)
@@ -147,6 +159,17 @@ class Runner:
 
     async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:
         t0 = datetime.now(timezone.utc)
+
+        # Check cache first
+        cached_trace = self._cache.get(scenario, self._config.adapter)
+        if cached_trace is not None:
+            logging.getLogger(__name__).info(
+                "[cached] %s — using cached response", scenario.id,
+            )
+            trace = cached_trace
+            # Skip harness execution; jump straight to evaluation
+            return self._evaluate(scenario, trace, t0)
+
         try:
             trace = await harness.run_scenario(scenario)
         except Exception as e:
@@ -169,6 +192,15 @@ class Runner:
                 execution_time_ms=(datetime.now(timezone.utc) - t0).total_seconds() * 1000,
             )
 
+        # Cache the successful trace
+        self._cache.put(scenario, self._config.adapter, trace)
+
+        return self._evaluate(scenario, trace, t0)
+
+    def _evaluate(
+        self, scenario: AttackScenario, trace: AgentTrace, t0: datetime,
+    ) -> TestResult:
+        """Evaluate a trace against scenario detection criteria."""
         evaluator = get_evaluator(scenario.category)
         if evaluator is None:
             logging.getLogger(__name__).warning(
