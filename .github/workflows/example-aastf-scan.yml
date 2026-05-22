@@ -20,6 +20,7 @@ jobs:
       - name: Run AASTF Security Scan
         id: aastf
         uses: ./.github/actions/aastf-scan
+        continue-on-error: true  # Demo uses a deliberately vulnerable agent
         with:
           agent-module: 'examples.vulnerable_agent:create_agent'
           adapter: 'langgraph'
