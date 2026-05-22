@@ -359,10 +359,9 @@ def create_agent(tools: list) -> object:
                         agent._sandbox_url = match.group(1)
                         break
 
-            invocations, output = asyncio.run_coroutine_threadsafe(
-                agent.process(user_msg, tool_names, payload=user_msg),
-                asyncio.get_event_loop(),
-            ).result()
+            invocations, output = await agent.process(
+                user_msg, tool_names, payload=user_msg,
+            )
 
             # Actually call the sandbox tools so the harness records them
             for tool_name in tool_names:
