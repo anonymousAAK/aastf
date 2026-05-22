@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install project dependencies
+        run: pip install -e ".[langgraph]"
+
       - name: Run AASTF Security Scan
         id: aastf
         uses: ./.github/actions/aastf-scan
@@ -21,6 +24,8 @@ jobs:
           agent-module: 'examples.vulnerable_agent:create_agent'
           adapter: 'langgraph'
           fail-on: 'HIGH'
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Print scan summary
         if: always()
