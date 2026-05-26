@@ -99,6 +99,21 @@ def run(
         "--clear-cache",
         help="Clear the response cache before running",
     ),
+    continuous: bool = typer.Option(
+        False,
+        "--continuous",
+        help="Run scans continuously on a recurring interval",
+    ),
+    interval: str = typer.Option(
+        "24h",
+        "--interval",
+        help="Scan interval for --continuous mode (e.g. '24h', '1h', '30m')",
+    ),
+    webhook_url: str = typer.Option(
+        None,
+        "--webhook-url",
+        help="POST scan results to this URL after each run",
+    ),
 ) -> None:
     """Execute a security scan against an agent system."""
     from ...models.config import FrameworkConfig
@@ -133,6 +148,31 @@ def run(
     if dry_run:
         _dry_run(config)
         return
+
+    # Continuous mode
+    if continuous:
+        from ...scheduler import ContinuousScheduler, parse_interval
+
+        try:
+            interval_seconds = parse_interval(interval)
+        except ValueError as exc:
+            console.print(f"[bold red]Invalid interval:[/bold red] {exc}")
+            raise typer.Exit(2) from None
+
+        scheduler = ContinuousScheduler(
+            config=config,
+            interval_seconds=interval_seconds,
+            webhook_url=webhook_url,
+        )
+        console.print(
+            f"[bold green]Starting continuous mode[/bold green] — "
+            f"interval={interval}, history={scheduler.history_dir}"
+        )
+        try:
+            asyncio.run(scheduler.start())
+        except KeyboardInterrupt:
+            console.print("\n[dim]Continuous mode stopped by user.[/dim]")
+        raise typer.Exit(0)
 
     # Handle cache flags
     from ...cache import ResponseCache

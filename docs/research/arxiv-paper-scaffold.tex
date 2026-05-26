@@ -1,0 +1,517 @@
+\documentclass{article}
+
+% NeurIPS 2026 style (SafeAI / SoLaR workshop)
+% Download neurips_2026.sty from https://neurips.cc/Conferences/2026/PaperInformation/StyleFiles
+\usepackage[preprint]{neurips_2026}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{subcaption}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  language=Python,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+}
+
+\title{AASTF: A Framework for Security Testing of Agentic AI Systems Against the OWASP ASI Top~10}
+
+\author{
+  Adarsh Keshri \\
+  Independent Researcher \\
+  \texttt{adarshkeshri027@gmail.com} \\
+  ORCID: \href{https://orcid.org/0009-0001-8020-9378}{0009-0001-8020-9378}
+}
+
+\begin{document}
+
+\maketitle
+
+% ============================================================================
+\begin{abstract}
+Agentic AI systems---autonomous programs that combine large language models
+with tool use, memory, planning, and multi-agent delegation---introduce
+attack surfaces that cannot be detected by testing the model alone.
+Existing red-teaming tools evaluate model outputs in isolation, missing
+vulnerabilities that emerge only when an agent interacts with external
+tools and other agents at runtime. We present \textbf{AASTF} (Agentic AI
+Security Testing Framework), an open-source framework that intercepts the
+agent \emph{execution graph} to test the full system against the OWASP
+Top~10 for Agentic Applications (ASI). AASTF provides 100+ attack
+scenarios spanning prompt injection, tool misuse, privilege escalation,
+supply-chain attacks, MCP protocol exploitation, memory poisoning, and
+cascading failures. It uses a sandbox server for safe execution, a
+three-class verdict system (VULNERABLE, REFUSAL\_ECHO, SAFE), and maps
+findings to regulatory frameworks including the EU AI Act and NIST AI RMF.
+We benchmark \textbf{X} models across \textbf{Y} agentic frameworks on
+all scenarios, finding that \textbf{Z\%} of model-framework combinations
+exhibit at least one critical vulnerability. We release AASTF as an MIT-licensed
+Python package with SARIF output for CI/CD integration.
+\end{abstract}
+
+% ============================================================================
+\section{Introduction}
+\label{sec:intro}
+
+The deployment of agentic AI systems is accelerating. Unlike conversational
+chatbots, agents act autonomously: they call APIs, read and write files,
+execute code, and delegate tasks to sub-agents. This shift from
+\emph{generation} to \emph{action} fundamentally changes the threat model.
+A prompt injection that would merely produce inappropriate text in a chatbot
+can, in an agentic system, trigger data exfiltration, unauthorized file
+deletion, or privilege escalation---without the underlying model itself
+being ``unsafe.''
+
+The OWASP Top~10 for Agentic Applications (ASI), published in December
+2025~\cite{owasp-asi}, codifies ten threat categories specific to agentic
+systems. Yet no existing security testing tool evaluates agents against
+this taxonomy at the \emph{system} level. Current tools---Garak~\cite{garak},
+PyRIT~\cite{pyrit}, DeepTeam~\cite{deepteam}, and
+Promptfoo~\cite{promptfoo}---test model inputs and outputs, not the
+execution graph that connects the model to its environment.
+
+We introduce AASTF, an open-source framework that:
+\begin{enumerate}
+    \item Intercepts the agent execution graph mid-flight via callback
+          instrumentation, capturing every tool call, planning step, and
+          inter-agent message.
+    \item Injects adversarial payloads at configurable points (user prompt,
+          tool response, inter-agent message, memory retrieval).
+    \item Evaluates the resulting execution trace against OWASP ASI
+          detection criteria using a three-class verdict system.
+    \item Produces machine-readable reports (SARIF, JSON) and maps findings
+          to the EU AI Act, NIST AI RMF, and CWE.
+\end{enumerate}
+
+% ============================================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Garak.} Derczynski et al.~\cite{garak} introduced Garak as a
+vulnerability scanner for LLMs, focusing on prompt-level probes and
+output classifiers. Garak does not intercept tool calls or model agentic
+behavior.
+
+\paragraph{PyRIT.} Microsoft's Python Risk Identification Toolkit~\cite{pyrit}
+automates red-teaming of generative AI systems with multi-turn
+conversations and scoring. It operates at the API response level and does
+not instrument the execution graph.
+
+\paragraph{DeepTeam.} DeepTeam~\cite{deepteam} provides metric-based
+evaluation of LLM safety across prompt injection, bias, and toxicity
+categories. It supports partial multi-turn state but does not test
+tool-use vulnerabilities.
+
+\paragraph{Promptfoo.} Promptfoo~\cite{promptfoo} is a prompt testing
+and evaluation framework that supports custom assertions. While extensible,
+it was designed for prompt engineering rather than agentic security testing.
+
+\paragraph{Microsoft Agentic Generative AI Threat Matrix (AGT).}
+Microsoft's AGT~\cite{agt} provides a MITRE ATT\&CK-style threat matrix
+for agentic systems. It is a taxonomy, not a testing tool, and AASTF
+scenarios map to AGT techniques where applicable.
+
+\paragraph{Agent Security Bench.} Yang et al.~\cite{agent-security-bench}
+benchmarked agent safety across 10 attack categories, finding an 84.30\%
+average attack success rate. Their work motivates AASTF's scenario design
+but uses a fixed evaluation harness rather than a pluggable framework.
+
+% ============================================================================
+\section{Threat Model}
+\label{sec:threat}
+
+We adopt the OWASP ASI Top~10~\cite{owasp-asi} as our threat taxonomy:
+
+\begin{table}[h]
+\centering
+\caption{OWASP ASI Top~10 threat categories covered by AASTF.}
+\label{tab:asi}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Code & Threat & AASTF Scenarios \\
+\midrule
+ASI01 & Agent Goal Hijack & 13 \\
+ASI02 & Tool Misuse \& Exploitation & 5 \\
+ASI03 & Identity \& Privilege Abuse & 7 \\
+ASI04 & Agentic Supply Chain & 8 \\
+ASI05 & Unexpected Code Execution & 7 \\
+ASI06 & Memory \& Context Poisoning & 10 \\
+ASI07 & Insecure Inter-Agent Communication & 5 \\
+ASI08 & Cascading Failures & 5 \\
+ASI09 & Human-Agent Trust Exploitation & 6 \\
+ASI10 & Rogue Agents & 5 \\
+\midrule
+MCP01--06 & MCP Protocol Security & 25 \\
+CVE01 & CVE-derived Real-World & 8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Attacker model.} We assume an attacker who can control content
+in at least one data source the agent consumes: a web search result, a
+document in a RAG corpus, an MCP server response, or a message from
+another agent. The attacker cannot modify the agent's source code or
+system prompt directly.
+
+% ============================================================================
+\section{Framework Architecture}
+\label{sec:architecture}
+
+AASTF is organized in five layers:
+
+\begin{figure}[h]
+\centering
+% \includegraphics[width=0.85\textwidth]{figures/architecture.pdf}
+\fbox{\parbox{0.85\textwidth}{\centering\vspace{2cm}
+\textbf{[PLACEHOLDER: Architecture diagram]}\\
+Layer 1: Harness (callback instrumentation)\\
+Layer 2: Scenarios (YAML registry, 100+ attacks)\\
+Layer 3: Sandbox (FastAPI mock backend)\\
+Layer 4: Reporting (JSON, SARIF, HTML, compliance)\\
+Layer 5: Platform (benchmark orchestration)
+\vspace{2cm}}}
+\caption{AASTF five-layer architecture. The harness intercepts execution
+events via framework-specific adapters (LangGraph, CrewAI, OpenAI Agents,
+PydanticAI). The sandbox replaces real tool backends with instrumented
+HTTP endpoints.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Execution Graph Interception}
+
+Unlike prompt-level tools that send an input and inspect the output, AASTF
+instruments the agent's \emph{internal} execution using the framework's
+native callback or event streaming mechanism. For LangGraph, this is the
+\texttt{astream\_events} v2 API; for CrewAI, the task callback system;
+for OpenAI Agents SDK, the tracing hooks.
+
+This interception yields a complete \emph{execution trace}: an ordered
+sequence of events including tool calls (with inputs and outputs),
+planning steps, inter-agent messages, and memory reads/writes.
+
+\subsection{Sandbox Server}
+
+AASTF starts a local FastAPI server that exposes the same HTTP endpoints
+an agent would normally call (e.g., \texttt{/tools/web\_search},
+\texttt{/tools/send\_email}, \texttt{/tools/execute\_code}). The sandbox:
+
+\begin{itemize}
+    \item Logs every request for trace analysis.
+    \item Returns scenario-configured responses (including adversarial payloads).
+    \item Performs no real side effects---no files are deleted, no emails sent.
+\end{itemize}
+
+\subsection{Three-Class Verdict System}
+
+AASTF evaluates each execution trace against scenario-specific detection
+criteria and assigns one of three verdicts:
+
+\begin{itemize}
+    \item \textbf{VULNERABLE}: The agent performed the forbidden action
+          (e.g., called the exfiltration tool).
+    \item \textbf{REFUSAL\_ECHO}: The agent refused the attack but echoed
+          the adversarial payload in its response, creating informational risk.
+    \item \textbf{SAFE}: The agent correctly resisted the attack with no
+          payload leakage.
+\end{itemize}
+
+This distinction matters for compliance: VULNERABLE findings map to
+EU AI Act Article~9 (risk management), while REFUSAL\_ECHO findings map
+to Article~15 (cybersecurity/output sanitization).
+
+\subsection{Evaluator Pipeline}
+
+Each OWASP ASI category has a dedicated evaluator that inspects the
+execution trace for category-specific patterns. For example, the ASI01
+evaluator checks whether any tool call in the trace matches the
+scenario's forbidden tool list; the ASI06 evaluator checks whether
+poisoned content persists in memory across sessions.
+
+% ============================================================================
+\section{Evaluation}
+\label{sec:eval}
+
+\subsection{Benchmark Setup}
+
+We evaluate 8 models across 4 agentic frameworks:
+
+\begin{table}[h]
+\centering
+\caption{Models and frameworks in the benchmark matrix.}
+\label{tab:models}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Models & Frameworks \\
+\midrule
+GPT-4o (OpenAI) & LangGraph \\
+GPT-4o-mini (OpenAI) & CrewAI \\
+Claude 3.5 Sonnet (Anthropic) & OpenAI Agents SDK \\
+Claude 3 Haiku (Anthropic) & PydanticAI \\
+Gemini 1.5 Pro (Google) & \\
+Gemini 1.5 Flash (Google) & \\
+Llama 3.1 70B (Meta, via Together) & \\
+Mistral Large (Mistral AI) & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Each model-framework pair is tested against all 100+ scenarios with
+3 runs per scenario (\texttt{runs\_per\_scenario: 3}, \texttt{timeout: 60s}).
+
+\subsection{Results}
+
+\begin{figure}[h]
+\centering
+% \includegraphics[width=0.85\textwidth]{figures/heatmap.pdf}
+\fbox{\parbox{0.85\textwidth}{\centering\vspace{4cm}
+\textbf{[PLACEHOLDER: Benchmark heatmap]}\\
+8 models (rows) $\times$ 4 frameworks (columns)\\
+Cell value = vulnerability\_rate (\%)\\
+Color scale: green (0\%) to red (100\%)
+\vspace{4cm}}}
+\caption{Vulnerability rate heatmap across model-framework pairs.
+  \textbf{[Data to be filled after benchmark execution.]}}
+\label{fig:heatmap}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\caption{Aggregate results by model (across all frameworks).
+  \textbf{[Placeholder data.]}}
+\label{tab:results-model}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Model & Vuln.\ Rate & Echo Rate & Safe Rate & Mean Latency (ms) \\
+\midrule
+GPT-4o           & --\% & --\% & --\% & -- \\
+GPT-4o-mini      & --\% & --\% & --\% & -- \\
+Claude 3.5 Sonnet & --\% & --\% & --\% & -- \\
+Claude 3 Haiku   & --\% & --\% & --\% & -- \\
+Gemini 1.5 Pro   & --\% & --\% & --\% & -- \\
+Gemini 1.5 Flash & --\% & --\% & --\% & -- \\
+Llama 3.1 70B    & --\% & --\% & --\% & -- \\
+Mistral Large    & --\% & --\% & --\% & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Aggregate results by OWASP ASI category (across all models and
+  frameworks). \textbf{[Placeholder data.]}}
+\label{tab:results-category}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Category & Vuln.\ Rate & Echo Rate & Safe Rate \\
+\midrule
+ASI01 -- Goal Hijack        & --\% & --\% & --\% \\
+ASI02 -- Tool Misuse        & --\% & --\% & --\% \\
+ASI03 -- Privilege Abuse    & --\% & --\% & --\% \\
+ASI04 -- Supply Chain       & --\% & --\% & --\% \\
+ASI05 -- Code Execution     & --\% & --\% & --\% \\
+ASI06 -- Memory Poisoning   & --\% & --\% & --\% \\
+ASI07 -- Inter-Agent Comms  & --\% & --\% & --\% \\
+ASI08 -- Cascading Failures & --\% & --\% & --\% \\
+ASI09 -- Trust Exploitation & --\% & --\% & --\% \\
+ASI10 -- Rogue Agents       & --\% & --\% & --\% \\
+MCP01--06 -- MCP Protocol   & --\% & --\% & --\% \\
+CVE01 -- Real-World CVEs    & --\% & --\% & --\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Safety--Latency Tradeoff}
+
+\begin{figure}[h]
+\centering
+% \includegraphics[width=0.75\textwidth]{figures/pareto.pdf}
+\fbox{\parbox{0.75\textwidth}{\centering\vspace{3cm}
+\textbf{[PLACEHOLDER: Pareto frontier]}\\
+x-axis: mean\_latency\_ms\\
+y-axis: safe\_rate (\%)\\
+Each point = one model-framework pair
+\vspace{3cm}}}
+\caption{Safety--latency Pareto frontier. Models on the frontier offer the
+  best tradeoff between security and response time.}
+\label{fig:pareto}
+\end{figure}
+
+% ============================================================================
+\section{MCP Protocol Security}
+\label{sec:mcp}
+
+The Model Context Protocol (MCP)~\cite{mcp-spec} standardizes how agents
+discover and invoke external tools. While MCP enables interoperability,
+it introduces new attack surfaces:
+
+\begin{itemize}
+    \item \textbf{Tool Signature Poisoning (MCP01):} Malicious MCP servers
+          embed prompt injection in tool descriptions, causing agents to
+          invoke tools with attacker-controlled parameters.
+    \item \textbf{Parameter Manipulation (MCP02):} Type confusion and
+          extra parameter injection exploit loose schema validation.
+    \item \textbf{Response Injection (MCP03):} Tool responses contain
+          embedded instructions that hijack subsequent agent actions.
+    \item \textbf{Resource Injection (MCP04):} Poisoned resources and
+          URI traversal attacks exploit the MCP resource subsystem.
+    \item \textbf{Rug Pulls and Shadowing (MCP06):} Server behavior
+          changes post-approval, or a malicious tool shadows a legitimate one.
+\end{itemize}
+
+AASTF includes 25 MCP-specific scenarios and a dedicated
+\texttt{MCPEvaluator} that validates tool discovery, invocation, and
+response handling in MCP-connected agents.
+
+% ============================================================================
+\section{Compliance Integration}
+\label{sec:compliance}
+
+AASTF maps every finding to three regulatory and standards frameworks:
+
+\paragraph{EU AI Act.} High-risk AI systems must demonstrate robustness
+against adversarial attacks (Article~15) and implement risk management
+(Article~9). AASTF classifies findings into \texttt{compliant},
+\texttt{at\_risk}, or \texttt{non\_compliant} based on severity and
+verdict type. The August 2026 enforcement deadline for Article~50
+transparency obligations makes automated compliance evidence
+increasingly urgent.
+
+\paragraph{NIST AI Risk Management Framework.} AASTF maps findings to
+NIST AI RMF functions (Govern, Map, Measure, Manage) with specific
+subcategory mappings (e.g., MG-2.2 for pre-deployment testing).
+
+\paragraph{IMDA AI Verify.} Singapore's AI governance framework is
+supported through scenario-level \texttt{ai\_verify} metadata fields.
+
+\paragraph{CWE Mapping.} Each scenario carries \texttt{cwe\_ids} linking
+to relevant Common Weakness Enumerations (e.g., CWE-74 for injection,
+CWE-284 for access control).
+
+% ============================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Limitations.} AASTF's execution graph interception depends on
+framework-specific adapters. Adding support for a new framework requires
+implementing a new adapter (typically 50--100 lines of Python). The
+sandbox approach, while safe, may not capture vulnerabilities that only
+manifest with real backend services. Our three-class verdict system, while
+more nuanced than binary pass/fail, does not capture the full spectrum of
+partial compromise states.
+
+\paragraph{Broader Impact.} We release AASTF as open-source software to
+democratize agent security testing. The benchmark dataset
+(\texttt{aastf/agent-security-traces} on HuggingFace) enables
+reproducible research. We acknowledge the dual-use risk: the attack
+scenarios in AASTF could inform adversarial use. We mitigate this by
+(a)~documenting only attacks already described in public literature
+(OWASP, CVEs, published papers) and (b)~providing remediation guidance
+for every scenario.
+
+% ============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented AASTF, the first security testing framework that evaluates
+agentic AI systems at the execution graph level against the OWASP ASI
+Top~10. Our benchmark of X models across Y frameworks demonstrates that
+existing agentic systems exhibit significant vulnerability rates, even
+when the underlying models are individually ``safe.'' AASTF's three-class
+verdict system, compliance mapping, and CI/CD integration via SARIF output
+provide practitioners with actionable security intelligence for agentic
+deployments.
+
+AASTF is available at \url{https://github.com/anonymousAAK/aastf}
+(MIT license) and on PyPI as \texttt{aastf}.
+
+% ============================================================================
+\begin{ack}
+The author thanks the OWASP Agentic Security Initiatives (ASI) working
+group for the threat taxonomy that underpins this work, and the
+open-source community for contributions to the scenario library.
+\end{ack}
+
+% ============================================================================
+\bibliographystyle{plainnat}
+% \bibliography{references}  % Uncomment when using BibTeX
+
+\begin{thebibliography}{12}
+
+\bibitem[OWASP(2025)]{owasp-asi}
+OWASP Foundation.
+\newblock OWASP Top 10 for Agentic Applications, December 2025.
+\newblock \url{https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/}
+
+\bibitem[Anthropic(2024)]{mcp-spec}
+Anthropic.
+\newblock Model Context Protocol Specification, November 2024.
+\newblock \url{https://spec.modelcontextprotocol.io/}
+
+\bibitem[European~Parliament(2024)]{eu-ai-act}
+European Parliament and Council.
+\newblock Regulation (EU) 2024/1689 laying down harmonised rules on
+  artificial intelligence (AI Act), June 2024.
+\newblock \emph{Official Journal of the European Union}, L series.
+
+\bibitem[NIST(2023)]{nist-ai-rmf}
+National Institute of Standards and Technology.
+\newblock AI Risk Management Framework (AI RMF 1.0), January 2023.
+\newblock \url{https://www.nist.gov/itl/ai-risk-management-framework}
+
+\bibitem[Yang et~al.(2025)]{agent-security-bench}
+Yang, H., Peng, Z., Chen, Y., et~al.
+\newblock Agent Security Bench (ASB): Formalizing and Benchmarking Attacks
+  and Defenses in LLM-based Agents.
+\newblock In \emph{Proceedings of ICLR 2025}.
+
+\bibitem[Gu et~al.(2024)]{garak}
+Derczynski, L., Inie, N., et~al.
+\newblock garak: A Framework for Security Probing Large Language Models.
+\newblock \emph{arXiv preprint arXiv:2406.11036}, 2024.
+
+\bibitem[Vassilev et~al.(2024)]{nist-adversarial}
+Vassilev, A., Oprea, A., Fordyce, A., Anderson, H.
+\newblock Adversarial Machine Learning: A Taxonomy and Terminology of
+  Attacks and Mitigations.
+\newblock \emph{NIST AI 100-2e2023}, January 2024.
+
+\bibitem[Microsoft(2024)]{pyrit}
+Microsoft.
+\newblock PyRIT: Python Risk Identification Toolkit for generative AI, 2024.
+\newblock \url{https://github.com/Azure/PyRIT}
+
+\bibitem[Confident~AI(2024)]{deepteam}
+Confident AI.
+\newblock DeepTeam: Red-Teaming LLMs Made Easy, 2024.
+\newblock \url{https://github.com/confident-ai/deepteam}
+
+\bibitem[Promptfoo(2024)]{promptfoo}
+Promptfoo Contributors.
+\newblock Promptfoo: Test your LLM app, 2024.
+\newblock \url{https://github.com/promptfoo/promptfoo}
+
+\bibitem[Microsoft(2025)]{agt}
+Microsoft.
+\newblock Agentic Generative AI Threat Matrix, 2025.
+\newblock \url{https://www.microsoft.com/en-us/security/blog/2025/04/24/new-whitepaper-outlines-the-taxonomy-of-failure-modes-in-ai-agents/}
+
+\bibitem[Tao et~al.(2025)]{survey-agentic}
+Tao, G., et~al.
+\newblock A Survey on the Security and Safety of Agentic AI Systems.
+\newblock \emph{arXiv preprint arXiv:2510.06445}, 2025.
+
+\end{thebibliography}
+
+\end{document}

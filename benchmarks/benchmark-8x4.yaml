@@ -1,0 +1,149 @@
+# AASTF Benchmark Configuration: 8 Models x 4 Frameworks
+# Run: aastf benchmark --config benchmarks/benchmark-8x4.yaml
+#
+# This configuration exercises all scenario packs (ASI, MCP, CVE) across
+# 8 mainstream LLMs and 4 agentic frameworks, producing a 32-cell matrix
+# with 3 runs per scenario for statistical robustness.
+
+benchmark:
+  name: "8x4 Full Matrix"
+  description: >
+    Cross-product benchmark of 8 models and 4 frameworks against the
+    complete AASTF scenario library (ASI, MCP, CVE). Designed to produce
+    a publishable heatmap of vulnerability rates by model-framework pair.
+  version: "1.0"
+  created: "2026-05-27"
+
+execution:
+  runs_per_scenario: 3
+  timeout_seconds: 60
+  parallel_workers: 4          # Framework-level parallelism; adjust to API rate limits
+  retry_on_timeout: true
+  max_retries: 2
+  cooldown_between_runs_ms: 500
+
+models:
+  - id: gpt-4o
+    provider: openai
+    model_name: gpt-4o
+    temperature: 0
+    env_key: OPENAI_API_KEY
+
+  - id: gpt-4o-mini
+    provider: openai
+    model_name: gpt-4o-mini
+    temperature: 0
+    env_key: OPENAI_API_KEY
+
+  - id: claude-3-5-sonnet
+    provider: anthropic
+    model_name: claude-sonnet-4-20250514
+    temperature: 0
+    env_key: ANTHROPIC_API_KEY
+
+  - id: claude-3-haiku
+    provider: anthropic
+    model_name: claude-3-haiku-20240307
+    temperature: 0
+    env_key: ANTHROPIC_API_KEY
+
+  - id: gemini-1-5-pro
+    provider: google
+    model_name: gemini-1.5-pro
+    temperature: 0
+    env_key: GOOGLE_API_KEY
+
+  - id: gemini-1-5-flash
+    provider: google
+    model_name: gemini-1.5-flash
+    temperature: 0
+    env_key: GOOGLE_API_KEY
+
+  - id: llama-3-1-70b
+    provider: together
+    model_name: meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo
+    temperature: 0
+    env_key: TOGETHER_API_KEY
+
+  - id: mistral-large
+    provider: mistral
+    model_name: mistral-large-latest
+    temperature: 0
+    env_key: MISTRAL_API_KEY
+
+frameworks:
+  - id: langgraph
+    adapter: langgraph
+    install_extra: "aastf[langgraph]"
+    agent_factory: benchmarks.agents.langgraph_agent:create_agent
+
+  - id: crewai
+    adapter: crewai
+    install_extra: "aastf[crewai]"
+    agent_factory: benchmarks.agents.crewai_agent:create_agent
+
+  - id: openai_agents
+    adapter: openai_agents
+    install_extra: "aastf[openai_agents]"
+    agent_factory: benchmarks.agents.openai_agents_agent:create_agent
+
+  - id: pydantic_ai
+    adapter: pydantic_ai
+    install_extra: "aastf[pydantic_ai]"
+    agent_factory: benchmarks.agents.pydantic_ai_agent:create_agent
+
+scenario_packs:
+  # OWASP ASI Top 10 scenarios
+  - category: ASI01    # Agent Goal Hijack
+  - category: ASI02    # Tool Misuse & Exploitation
+  - category: ASI03    # Identity & Privilege Abuse
+  - category: ASI04    # Agentic Supply Chain
+  - category: ASI05    # Unexpected Code Execution
+  - category: ASI06    # Memory & Context Poisoning
+  - category: ASI07    # Insecure Inter-Agent Communication
+  - category: ASI08    # Cascading Failures
+  - category: ASI09    # Human-Agent Trust Exploitation
+  - category: ASI10    # Rogue Agents
+
+  # MCP Protocol Security scenarios
+  - category: MCP01    # Tool Signature Poisoning
+  - category: MCP02    # Tool Parameter Manipulation
+  - category: MCP03    # Tool Response Injection
+  - category: MCP04    # Resource Injection
+  - category: MCP05    # MCPSecBench Coverage
+  - category: MCP06    # OWASP MCP Top 10
+
+  # CVE-derived real-world scenarios
+  - category: CVE01    # Real-world CVE reproductions
+
+severity_filter: null          # Run all severities (LOW, MEDIUM, HIGH, CRITICAL)
+
+output:
+  base_dir: "benchmark-results/"
+  formats:
+    - json                     # Raw per-scenario verdicts
+    - sarif                    # GitHub Security tab compatible
+    - html                     # Visual report with heatmap
+    - csv                      # For pandas / R analysis
+  generate_heatmap: true       # Model x Framework vulnerability rate matrix
+  generate_pareto: true        # Safety-vs-latency Pareto frontier chart
+  aggregate_stats:
+    - vulnerability_rate       # % VULNERABLE across runs
+    - refusal_echo_rate        # % REFUSAL_ECHO across runs
+    - safe_rate                # % SAFE across runs
+    - mean_latency_ms          # Average response time
+    - p95_latency_ms           # 95th percentile latency
+    - timeout_rate             # % of runs that timed out
+
+cost_estimation:
+  # Approximate per-scenario costs (USD) for budgeting.
+  # Actual cost depends on prompt length and model pricing.
+  gpt-4o: 0.015
+  gpt-4o-mini: 0.002
+  claude-3-5-sonnet: 0.012
+  claude-3-haiku: 0.001
+  gemini-1-5-pro: 0.010
+  gemini-1-5-flash: 0.001
+  llama-3-1-70b: 0.004
+  mistral-large: 0.008
+  # Total estimate: 8 models x ~100 scenarios x 3 runs x avg $0.007 = ~$16.80

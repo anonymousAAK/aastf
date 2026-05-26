@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import typer
 
+from .commands import benchmark as benchmark_cmd
 from .commands import compliance as compliance_cmd
+from .commands import drift as drift_cmd
 from .commands import init as init_cmd
+from .commands import packs as packs_cmd
 from .commands import report as report_cmd
 from .commands import run as run_cmd
 from .commands import scenario as scenario_cmd
@@ -21,8 +24,11 @@ app = typer.Typer(
 # run and init are single commands — add directly so positional arg is not confused with subcommand
 app.command("run", help="Execute a security scan against an agent")(run_cmd.run)
 app.command("init", help="Initialize AASTF configuration")(init_cmd.init)
+app.add_typer(benchmark_cmd.app, name="benchmark", help="Cross-model security benchmarks")
 app.add_typer(compliance_cmd.app, name="compliance", help="Generate compliance reports")
+app.add_typer(drift_cmd.app, name="drift", help="Detect regressions between scan reports")
 app.add_typer(report_cmd.app, name="report", help="Render and compare scan reports")
+app.add_typer(packs_cmd.app, name="packs", help="Manage scenario packs")
 app.add_typer(scenario_cmd.app, name="scenario", help="Manage and validate attack scenarios")
 app.add_typer(serve_cmd.app, name="serve", help="Start the sandbox server for manual debugging")
 
