@@ -130,9 +130,9 @@ class TestMemoryAttackRequiredFields:
         for field in REQUIRED_FIELDS:
             value = getattr(scenario, field, None)
             assert value is not None, f"{scenario.id} missing required field: {field}"
-            if isinstance(value, (str,)):
+            if isinstance(value, str):
                 assert len(value.strip()) > 0, f"{scenario.id} has empty field: {field}"
-            elif isinstance(value, (list,)):
+            elif isinstance(value, list):
                 assert len(value) > 0, f"{scenario.id} has empty list field: {field}"
 
 
