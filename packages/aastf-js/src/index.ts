@@ -49,3 +49,11 @@ export {
 
 // Reporter
 export { formatConsole, formatJSON, formatSARIF } from "./reporter.js";
+
+// Adapters
+export { BaseAdapter, OpenAIAgentsAdapter, LangChainAdapter } from "./adapters/index.js";
+export type {
+  AdapterConfig,
+  OpenAIAgentsAdapterConfig,
+  LangChainAdapterConfig,
+} from "./adapters/index.js";

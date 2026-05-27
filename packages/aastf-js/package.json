@@ -5,10 +5,25 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "aastf": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./adapters": {
+      "import": "./dist/adapters/index.js",
+      "types": "./dist/adapters/index.d.ts"
+    },
+    "./adapters/openai-agents": {
+      "import": "./dist/adapters/openai-agents.js",
+      "types": "./dist/adapters/openai-agents.d.ts"
+    },
+    "./adapters/langchainjs": {
+      "import": "./dist/adapters/langchainjs.js",
+      "types": "./dist/adapters/langchainjs.d.ts"
     }
   },
   "files": [
