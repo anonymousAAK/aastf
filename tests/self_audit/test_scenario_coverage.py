@@ -47,7 +47,7 @@ class TestScenarioCoverage:
                 )
             else:
                 # MCP and CVE scenarios map to ASI categories but use their own ID prefix
-                assert s.id[:3] in ("MCP", "CVE"), (
+                assert s.id[:3] in ("MCP", "CVE", "A2A", "MAS"), (
                     f"Scenario {s.id} has unknown ID prefix"
                 )
 

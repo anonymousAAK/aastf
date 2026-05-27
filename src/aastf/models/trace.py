@@ -75,6 +75,7 @@ class AgentTrace(BaseModel):
     error: str | None = None
     iteration_count: int = 0
     delegations: list[str] = Field(default_factory=list)  # child agent run IDs
+    metadata: dict[str, Any] = Field(default_factory=dict)  # extensible metadata (multi-agent results, etc.)
 
     @property
     def duration_ms(self) -> float | None:

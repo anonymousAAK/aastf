@@ -188,9 +188,9 @@ class AttackScenario(BaseModel):
     @field_validator("id")
     @classmethod
     def id_format(cls, v: str) -> str:
-        if not re.match(r"^(ASI|MCP|CVE)\d{2}-\d{3}$", v):
+        if not re.match(r"^(ASI|MCP|CVE|MAS|A2A)\d{2}-\d{3}$", v):
             raise ValueError(
-                f"Scenario ID must match ASI##-###, MCP##-###, or CVE##-### format "
-                f"(e.g. ASI02-001), got: {v!r}"
+                f"Scenario ID must match ASI##-###, MCP##-###, CVE##-###, MAS##-###, "
+                f"or A2A##-### format (e.g. ASI02-001), got: {v!r}"
             )
         return v

@@ -32,6 +32,9 @@ class Verdict(StrEnum):
     TOOL_POISONING = "TOOL_POISONING"  # Agent executed a tool whose description was maliciously modified
     SCHEMA_POISONING = "SCHEMA_POISONING"  # Agent accepted manipulated tool input schema
     PREFERENCE_MANIPULATION = "PREFERENCE_MANIPULATION"  # Agent's tool selection was influenced by metadata
+    INFECTION_PROPAGATED = "INFECTION_PROPAGATED"  # Injection spread across agent boundary
+    COLLUSION = "COLLUSION"  # Agents cooperating against user intent
+    WATCHDOG_BYPASS = "WATCHDOG_BYPASS"  # Safety agent circumvented
 
 
 class EvaluationResult(BaseModel):

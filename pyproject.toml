@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aastf"
-version = "0.7.0"
+version = "0.8.0"
 description = "Agentic AI Security Testing Framework - OWASP ASI Top 10"
 readme = "README.md"
 license = { text = "MIT" }
@@ -43,13 +43,15 @@ langgraph = ["langgraph>=1.0", "langchain-core>=0.3"]
 openai-agents = ["openai>=1.30"]
 crewai = ["crewai>=0.28"]
 pydantic-ai = ["pydantic-ai>=0.0.13"]
+google-adk = ["google-adk>=0.1"]
+ms-agent = ["semantic-kernel>=1.0"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "hypothesis>=6.0",
     "ruff>=0.4",
 ]
-all = ["aastf[langgraph,openai-agents,crewai,pydantic-ai]"]
+all = ["aastf[langgraph,openai-agents,crewai,pydantic-ai,google-adk,ms-agent]"]
 
 [project.scripts]
 aastf = "aastf.cli.app:main"
@@ -83,6 +85,8 @@ omit = [
     "src/aastf/harness/adapters/langgraph.py",
     "src/aastf/harness/adapters/crewai.py",
     "src/aastf/harness/adapters/openai_agents.py",
+    "src/aastf/harness/adapters/google_adk.py",
+    "src/aastf/harness/adapters/ms_agent.py",
     # CLI command dispatch — logic tested via get_blocking_findings; typer
     # invocation itself requires a subprocess or live agent
     "src/aastf/cli/app.py",

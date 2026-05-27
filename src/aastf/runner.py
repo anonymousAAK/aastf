@@ -152,9 +152,17 @@ class Runner:
             from .harness.adapters.mcp import MCPHarness
 
             return MCPHarness(factory, sandbox, timeout=self._config.timeout_seconds)
+        elif adapter == "google_adk":
+            from .harness.adapters.google_adk import GoogleADKHarness
+
+            return GoogleADKHarness(factory, sandbox, timeout=self._config.timeout_seconds)
+        elif adapter == "ms_agent":
+            from .harness.adapters.ms_agent import MSAgentHarness
+
+            return MSAgentHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         raise AdapterNotFoundError(
             f"Unknown adapter: {adapter!r}. "
-            "Supported: langgraph, crewai, openai_agents, pydantic_ai, mcp"
+            "Supported: langgraph, crewai, openai_agents, pydantic_ai, mcp, google_adk, ms_agent"
         )
 
     async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:

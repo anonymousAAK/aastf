@@ -158,6 +158,9 @@ def test_verdict_enum_completeness() -> None:
         "TOOL_POISONING",
         "SCHEMA_POISONING",
         "PREFERENCE_MANIPULATION",
+        "INFECTION_PROPAGATED",
+        "COLLUSION",
+        "WATCHDOG_BYPASS",
     }
     assert known_verdicts == expected, (
         f"Verdict enum mismatch: missing={expected - known_verdicts}, "

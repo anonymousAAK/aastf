@@ -95,7 +95,7 @@ def test_required_fields_present(
 # ID naming convention
 # ---------------------------------------------------------------------------
 
-_ID_PATTERN = re.compile(r"^(ASI|MCP|CVE)\d{2}-\d{3}$")
+_ID_PATTERN = re.compile(r"^(ASI|MCP|CVE|A2A|MAS)\d{2}-\d{3}$")
 
 
 def test_all_ids_follow_naming_convention(
