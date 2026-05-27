@@ -43,7 +43,7 @@ jobs:
       id-token: write  # OIDC for Sigstore
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
@@ -71,7 +71,7 @@ jobs:
       id-token: write  # OIDC trusted publisher
     steps:
       - name: Download signed artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist-signed
           path: dist/
@@ -89,7 +89,7 @@ jobs:
       contents: write
     steps:
       - name: Download signed artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist-signed
           path: dist/
