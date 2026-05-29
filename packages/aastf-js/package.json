@@ -1,5 +1,5 @@
 {
-  "name": "aastf",
+  "name": "@aastf/core",
   "version": "1.0.0",
   "description": "TypeScript SDK for the Agentic AI Security Testing Framework (AASTF)",
   "type": "module",
