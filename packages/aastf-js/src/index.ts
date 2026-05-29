@@ -50,6 +50,28 @@ export {
 // Reporter
 export { formatConsole, formatJSON, formatSARIF } from "./reporter.js";
 
+// Scenario runner
+export {
+  ScenarioRunner,
+  ScenarioRunError,
+  evaluateVerdict,
+  buildFinding,
+  buildScanReport,
+  parseSimpleYAML,
+  loadScenarioFromFile,
+  discoverScenarioFiles,
+  withTimeout,
+} from "./scenario-runner.js";
+export type { ScenarioRunnerOptions } from "./scenario-runner.js";
+
+// Sandbox server
+export { SandboxServer, startFromCLI } from "./sandbox-server.js";
+export type {
+  SandboxServerConfig,
+  ScanRequest,
+  ScanResponse,
+} from "./sandbox-server.js";
+
 // Adapters
 export {
   BaseAdapter,

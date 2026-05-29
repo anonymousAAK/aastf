@@ -21,3 +21,4 @@ benchmark/results/
 htmlcov/
 *.pdf
 plan.md
+node_modules/

@@ -24,7 +24,7 @@ import type { BaseAdapter } from "./adapters/base.js";
 import type { AttackScenario, ScanReport, TestResult, VulnerabilityFinding } from "./types.js";
 import { Verdict, SEVERITY_NUMERIC } from "./types.js";
 
-const VERSION = "0.1.0-beta.1";
+const VERSION = "1.0.0";
 
 // ---------------------------------------------------------------------------
 // Minimal argument parser (no external deps)
