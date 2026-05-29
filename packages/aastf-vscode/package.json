@@ -1,0 +1,134 @@
+{
+  "name": "aastf-vscode",
+  "displayName": "AASTF Security Scanner",
+  "description": "Agentic AI Security Testing Framework — scan, diagnose, and fix AI agent vulnerabilities from VS Code.",
+  "version": "0.1.0",
+  "publisher": "anonymousAAK",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anonymousAAK/aastf"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing",
+    "Linters"
+  ],
+  "keywords": [
+    "security",
+    "ai",
+    "agent",
+    "testing",
+    "agentic",
+    "llm",
+    "prompt-injection",
+    "tool-poisoning"
+  ],
+  "icon": "media/icon.png",
+  "activationEvents": [
+    "onCommand:aastf.*"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aastf.scan",
+        "title": "AASTF: Run Security Scan",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "aastf.viewResults",
+        "title": "AASTF: View Scan Results",
+        "icon": "$(output)"
+      },
+      {
+        "command": "aastf.listScenarios",
+        "title": "AASTF: List Scenarios",
+        "icon": "$(list-tree)"
+      }
+    ],
+    "views": {
+      "aastf-sidebar": [
+        {
+          "id": "aastfScenarios",
+          "name": "Scenarios",
+          "icon": "$(shield)",
+          "contextualTitle": "AASTF Scenarios"
+        },
+        {
+          "id": "aastfResults",
+          "name": "Results",
+          "icon": "$(checklist)",
+          "contextualTitle": "AASTF Results"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aastf-sidebar",
+          "title": "AASTF Security",
+          "icon": "$(shield)"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AASTF Security Scanner",
+      "properties": {
+        "aastf.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to the Python interpreter with AASTF installed."
+        },
+        "aastf.configPath": {
+          "type": "string",
+          "default": "aastf.yaml",
+          "description": "Path to the AASTF configuration file (relative to workspace root)."
+        },
+        "aastf.scanOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run AASTF scan when files are saved."
+        },
+        "aastf.severity.minimum": {
+          "type": "string",
+          "default": "MEDIUM",
+          "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"],
+          "description": "Minimum severity level to display as diagnostics."
+        },
+        "aastf.sarif.outputPath": {
+          "type": "string",
+          "default": ".aastf/results.sarif",
+          "description": "Path to write SARIF output (relative to workspace root)."
+        }
+      }
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "aastf.scan",
+          "when": "view == aastfScenarios",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  }
+}
