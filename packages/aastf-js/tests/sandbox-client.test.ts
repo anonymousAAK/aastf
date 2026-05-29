@@ -111,6 +111,7 @@ describe("SandboxClient", () => {
 
     it("should throw SandboxError on non-2xx response", async () => {
       mockFetch.mockResolvedValueOnce(errorResponse(422, "Unprocessable"));
+      mockFetch.mockResolvedValueOnce(errorResponse(422, "Unprocessable"));
 
       const client = new SandboxClient(BASE_URL);
 
