@@ -1,12 +1,13 @@
 {
   "name": "@aastf/core",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-beta.1",
   "description": "TypeScript SDK for the Agentic AI Security Testing Framework (AASTF)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "aastf": "./dist/cli.js"
+    "aastf": "./dist/cli.js",
+    "aastf-standalone": "./dist/standalone-cli.js"
   },
   "exports": {
     ".": {
@@ -24,6 +25,14 @@
     "./adapters/langchainjs": {
       "import": "./dist/adapters/langchainjs.js",
       "types": "./dist/adapters/langchainjs.d.ts"
+    },
+    "./adapters/mastra": {
+      "import": "./dist/adapters/mastra.js",
+      "types": "./dist/adapters/mastra.d.ts"
+    },
+    "./adapters/vercel-ai": {
+      "import": "./dist/adapters/vercel-ai.js",
+      "types": "./dist/adapters/vercel-ai.d.ts"
     }
   },
   "files": [

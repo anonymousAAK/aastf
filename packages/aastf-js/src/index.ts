@@ -51,9 +51,20 @@ export {
 export { formatConsole, formatJSON, formatSARIF } from "./reporter.js";
 
 // Adapters
-export { BaseAdapter, OpenAIAgentsAdapter, LangChainAdapter } from "./adapters/index.js";
+export {
+  BaseAdapter,
+  OpenAIAgentsAdapter,
+  LangChainAdapter,
+  MastraAdapter,
+  VercelAIAdapter,
+} from "./adapters/index.js";
 export type {
   AdapterConfig,
   OpenAIAgentsAdapterConfig,
   LangChainAdapterConfig,
+  MastraAdapterConfig,
+  MastraStepResult,
+  VercelAIAdapterConfig,
+  VercelAIToolCall,
+  VercelAIToolResult,
 } from "./adapters/index.js";
