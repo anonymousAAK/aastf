@@ -1,5 +1,5 @@
 {
-  "name": "agentscan",
+  "name": "asi-scan",
   "version": "1.0.0",
   "description": "TypeScript SDK for the Agentic AI Security Testing Framework (AASTF)",
   "type": "module",
