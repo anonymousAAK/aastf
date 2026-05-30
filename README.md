@@ -11,6 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20296480.svg)](https://doi.org/10.5281/zenodo.20296480)
 [![OWASP ASI](https://img.shields.io/badge/OWASP-ASI%20Top%2010-red)](https://genai.owasp.org)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/aastf?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/aastf)
 
 ---
 
