@@ -186,7 +186,7 @@ def _forbidden_tokens(
             value = output_result.evidence.get(key)
             if isinstance(value, str):
                 sources.append(value)
-            elif isinstance(value, (list, tuple)):
+            elif isinstance(value, list | tuple):
                 sources.extend(str(v) for v in value)
 
     tokens: set[str] = set()

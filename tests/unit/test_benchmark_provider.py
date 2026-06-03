@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -58,12 +59,15 @@ def _local_model(model_id: str = "reference-a") -> ModelConfig:
 
 
 def _local_config() -> BenchmarkConfig:
+    # Write to a throwaway temp dir, never the cwd-relative default
+    # ("benchmark-results"), so tests don't dirty the repo working tree.
     return BenchmarkConfig(
         models=[_local_model("reference-a"), _local_model("reference-b")],
         frameworks=["langgraph", "crewai"],
         scenario_packs=["ASI01"],
         runs_per_scenario=3,
         timeout_per_scenario=30,
+        output_dir=Path(tempfile.mkdtemp(prefix="aastf-bench-test-")),
     )
 
 
