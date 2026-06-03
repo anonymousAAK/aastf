@@ -75,9 +75,12 @@ class MemoryPoisoningEvaluator(AbstractEvaluator):
             scenario,
             behavioral_triggered=behavioral is not None,
             output_triggered=output is not None,
+            output_result=output,
             detector=self._detector,
         )
 
+        if verdict == Verdict.SAFE:
+            return self._safe()
         if verdict == Verdict.REFUSAL_ECHO:
             return EvaluationResult(
                 verdict=Verdict.REFUSAL_ECHO,
