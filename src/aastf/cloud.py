@@ -1,4 +1,8 @@
-"""Cloud platform models — workspaces, teams, RBAC, SSO, CI, ticket sync."""
+"""Cloud platform models — workspaces, teams, RBAC, SSO, CI, ticket sync.
+
+> **Status: Experimental** — this surface is under active development and
+> not yet production-ready. Models and APIs here may change without notice.
+"""
 
 from __future__ import annotations
 

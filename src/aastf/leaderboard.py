@@ -1,4 +1,8 @@
-"""Leaderboard — ranking engine, submission handling, and public results tables."""
+"""Leaderboard — ranking engine, submission handling, and public results tables.
+
+> **Status: Experimental** — this surface is under active development and
+> not yet production-ready. Models and APIs here may change without notice.
+"""
 
 from __future__ import annotations
 

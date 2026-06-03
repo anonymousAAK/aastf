@@ -1,4 +1,8 @@
-"""Enterprise features — conformity packs, on-prem config, scenario authoring."""
+"""Enterprise features — conformity packs, on-prem config, scenario authoring.
+
+> **Status: Experimental** — this surface is under active development and
+> not yet production-ready. Models and APIs here may change without notice.
+"""
 
 from __future__ import annotations
 

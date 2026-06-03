@@ -40,7 +40,27 @@ AASTF uses a **three-class verdict system** that goes beyond binary pass/fail:
 | Garak | Model outputs | No | No | No |
 | PyRIT | Model responses | No | Partial | No |
 | DeepTeam | Prompt/response | No | Partial | Partial |
-| **AASTF** | **Agent execution graph** | **Yes** | **Yes** | **Full** |
+| **AASTF** | **Agent execution graph** | **Yes (LangGraph)** | **Yes** | **Yes** |
+
+### Adapter support matrix
+
+Interception depth differs by framework. Only LangGraph has full,
+event-level tool-call interception today; the others are at varying
+stages of maturity and several are experimental.
+
+| Adapter | Status | Interception |
+|---------|--------|--------------|
+| LangGraph | **Full** | Event-level via `astream_events(v2)` (tool calls, chains, parent run IDs) |
+| Generic | Supported | Works against any agent that conforms to the agent-factory contract (tools list in, callable out) |
+| CrewAI | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+| OpenAI Agents | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+| PydanticAI | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+| Google ADK | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+| Microsoft Agent | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+
+Experimental adapters are present in the codebase and exercised by tests,
+but their interception fidelity and scenario coverage are not yet on par
+with LangGraph. Treat their results as indicative, not authoritative.
 
 ---
 
@@ -278,8 +298,12 @@ Layer 4: Reporting   JSON . SARIF . HTML . Compliance
 Layer 3: Sandbox     FastAPI Mock Backend . Real HTTP Calls
 Layer 2: Scenarios   YAML Registry . 130+ OWASP ASI Attack Scenarios
 Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
-           LangGraph    OpenAI Agents    CrewAI    PydanticAI
+           LangGraph (full) . Generic (supported)
+           CrewAI / OpenAI Agents / PydanticAI / Google ADK / MS Agent (experimental)
 ```
+
+See the [adapter support matrix](#adapter-support-matrix) for interception
+depth per framework.
 
 ---
 
