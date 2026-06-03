@@ -1,5 +1,8 @@
 """Web UI backend server for ``aastf view``.
 
+> **Status: Experimental** — this surface is under active development and
+> not yet production-ready. Models and APIs here may change without notice.
+
 Serves scan results as an interactive HTML dashboard using only stdlib
 (http.server, json, pathlib) — no Flask / FastAPI dependency.
 """

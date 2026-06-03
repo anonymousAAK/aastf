@@ -1,9 +1,12 @@
 # AASTF: Agentic AI Security Testing Framework
 ## A Comprehensive Technical Report with Cross-Model Adversarial Benchmarks
 
-**Author:** Adarsh Keshri
-**Date:** April 2026
-**Framework version:** AASTF v0.2.0
+> **Benchmark figures in this report are illustrative/projected — not measured.**
+> The vulnerability rates and cross-model comparison numbers are estimates, not
+> the output of a verified, reproducible benchmark run, and must not be cited as
+> empirical results.
+
+**Framework version:** see the [current release](https://pypi.org/project/aastf/)
 **PyPI:** `pip install aastf`
 **Source:** github.com/anonymousAAK/aastf
 
@@ -739,7 +742,7 @@ aastf run myapp.agent:create_agent --scenario-dir ./my-scenarios
   title     = {AASTF: Agentic AI Security Testing Framework},
   year      = {2026},
   url       = {https://github.com/anonymousAAK/aastf},
-  note      = {v0.2.0. 50-scenario benchmark against OWASP ASI Top 10.}
+  note      = {Benchmark against OWASP ASI Top 10. Figures illustrative/projected — not measured.}
 }
 ```
 

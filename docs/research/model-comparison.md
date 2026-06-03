@@ -1,8 +1,11 @@
 # AASTF Benchmark — Cross-Model Comparison
 ## gpt-5.4 (Codex CLI) vs model-b-sonnet (CLI Agent B)
 
-**Date:** 2026-04-15
-**Framework:** AASTF v0.2.0
+> **Illustrative/projected — not measured.** The numbers in this document are
+> estimates, not the output of a verified, reproducible benchmark run. Do not
+> cite them as empirical results.
+
+**Framework:** see the [current release](https://pypi.org/project/aastf/)
 **Scenarios:** 15 output-based detection scenarios across OWASP ASI01–ASI10
 
 ---

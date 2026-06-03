@@ -1,8 +1,13 @@
 # AASTF: A Systematic Framework and Benchmark for Agentic AI Security Testing Against OWASP ASI Top 10
 
-**[Adarsh Keshri], [Affiliation]**
+> **DRAFT — NOT PEER REVIEWED. NOT SUBMITTED.**
+> This is an unfinished working draft. Author and affiliation are not yet
+> finalised, and the benchmark figures below are **illustrative/projected —
+> not measured**. Do not cite.
 
-*Need to submit to arXiv, April 2026. Draft version.*
+**Author and affiliation: to be confirmed.**
+
+*Working draft. Not yet submitted to arXiv.*
 
 ---
 
@@ -22,9 +27,9 @@ agent behavior against the OWASP Top 10 for Agentic Applications (ASI, December 
 We contribute (1) an execution graph interception technique via `astream_events(v2)`,
 (2) a 50-scenario benchmark spanning all 10 OWASP ASI categories, and (3) the first
 cross-framework comparison at this threat taxonomy. Across three framework/model
-configurations, we observe vulnerability rates of 54–70%, confirming that the majority
-of current agentic systems are exploitable under principled adversarial testing. AASTF
-is available at github.com/your-org/aastf.
+configurations, we report illustrative/projected vulnerability rates of 54–70%
+(**not measured** — see Section 5). AASTF
+is available at github.com/anonymousAAK/aastf.
 
 ---
 
@@ -369,8 +374,12 @@ Temperature=0 is enforced at the API call level in all framework adapters.
 
 ### 5.1 Overall Vulnerability Rates
 
-Table 1 presents the primary benchmark results across three framework/model
-configurations. All figures are from AASTF v0.1.0 benchmark runs (April 2026).
+Table 1 presents projected benchmark results across three framework/model
+configurations.
+
+> **Illustrative/projected — not measured.** The numbers in this section are
+> expected-value estimates used to scaffold the paper. They are not the output
+> of an executed benchmark run and must not be cited as empirical results.
 
 **Table 1: Overall Benchmark Results**
 
@@ -546,7 +555,7 @@ addressed through prompt hardening alone.
 As autonomous agents take on higher-stakes roles in consequential decision-making, the
 security community requires tools that match the system-level threat model of agent
 deployments. AASTF is a step toward that standard. The framework, benchmark, and
-scenario library are open source at github.com/your-org/aastf. Community contributions
+scenario library are open source at github.com/anonymousAAK/aastf. Community contributions
 to the scenario library are welcome and are the fastest path to expanding coverage of
 the OWASP ASI taxonomy.
 
@@ -601,8 +610,8 @@ Autonomous AI Agents.* Technical documentation, 2024. https://crewai.com
 
 ---
 
-*Correspondence: [email]@[institution]. Code and benchmark: github.com/your-org/aastf.*
+*Correspondence: to be confirmed. Code and benchmark: github.com/anonymousAAK/aastf.*
 
-*This draft has not undergone peer review. Figures are from AASTF v0.1.0 benchmark runs
+*This draft has not undergone peer review. Figures are illustrative/projected — not measured — from AASTF benchmark scaffolding
 (April 2026). See [benchmark-results-v1.md](./benchmark-results-v1.md) for full results
 and [benchmark-methodology.md](./benchmark-methodology.md) for reproduction instructions.*
