@@ -33,7 +33,7 @@ from .models.result import (
 from .models.scenario import ASICategory, AttackScenario
 from .models.trace import AgentTrace
 from .sandbox.server import SandboxServer
-from .scenarios.evaluators import get_evaluator
+from .scenarios.evaluators import get_evaluator_for
 from .scenarios.registry import ScenarioRegistry
 from .scoring import annotate_findings, compute_risk_score, eu_ai_act_readiness
 
@@ -225,7 +225,7 @@ class Runner:
                 execution_time_ms=(datetime.now(timezone.utc) - t0).total_seconds() * 1000,
             )
 
-        evaluator = get_evaluator(scenario.category)
+        evaluator = get_evaluator_for(scenario)
         if evaluator is None:
             logging.getLogger(__name__).warning(
                 "No evaluator registered for category %s", scenario.category
