@@ -295,8 +295,13 @@ class PrometheusMetricsServer:
         server.stop()
     """
 
-    def __init__(self, port: int = 9090) -> None:
+    def __init__(self, port: int = 9090, host: str = "127.0.0.1") -> None:
+        # Bind to loopback by default. The /metrics endpoint is unauthenticated,
+        # so exposing it on all interfaces (0.0.0.0) would leak scan results
+        # network-wide — which AASTF's own static analyzer flags as a finding.
+        # Set host explicitly to expose it behind a trusted proxy.
         self.port = port
+        self.host = host
         self._metrics_text: str = ""
         self._server: http.server.HTTPServer | None = None
         self._thread: threading.Thread | None = None
@@ -332,7 +337,7 @@ class PrometheusMetricsServer:
     def start(self) -> None:
         """Start serving ``/metrics`` in a daemon thread."""
         handler = self._handler_factory()
-        self._server = http.server.HTTPServer(("0.0.0.0", self.port), handler)
+        self._server = http.server.HTTPServer((self.host, self.port), handler)
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
 

@@ -276,6 +276,14 @@ class ContinuousScheduler:
         if not self._webhook_url:
             return
 
+        from .netsec import UnsafeURLError, validate_outbound_url
+
+        try:
+            validate_outbound_url(self._webhook_url)
+        except UnsafeURLError as exc:
+            logger.error("Refusing to POST to unsafe webhook URL: %s", exc)
+            return
+
         payload = {
             "event": "aastf_scan_complete",
             "run_id": report.run_id,
@@ -322,6 +330,14 @@ class ContinuousScheduler:
     async def _push_sarif(self, report: ScanReport) -> None:
         """Push SARIF results to GitHub Code Scanning API."""
         if not self._sarif_endpoint:
+            return
+
+        from .netsec import UnsafeURLError, validate_outbound_url
+
+        try:
+            validate_outbound_url(self._sarif_endpoint)
+        except UnsafeURLError as exc:
+            logger.error("Refusing to push SARIF to unsafe endpoint: %s", exc)
             return
 
         import base64
