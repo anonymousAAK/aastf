@@ -2,7 +2,7 @@
 Category B — Adapter robustness.
 
 Hypotheses:
-  B1. `generic` adapter listed in FrameworkConfig raises at runtime (BUG-01).
+  B1. `generic` adapter is a real, reachable adapter (BUG-01 fixed).
   B2. PydanticAI harness raises AdapterNotFoundError when pydantic_ai not installed.
   B3. Runner raises AdapterNotFoundError with useful message for unknown adapter.
   B4. agent_factory path without ':' raises ValueError.
@@ -30,25 +30,38 @@ def _make_config(**kwargs) -> FrameworkConfig:
 
 # --------------------------------------------------------------------------- B1
 class TestGenericAdapterBug:
-    """B1: 'generic' is now rejected at config validation time (BUG-01 fixed)."""
+    """B1: 'generic' is now a real, reachable adapter (BUG-01 fixed)."""
 
-    def test_generic_is_rejected_by_pydantic(self):
+    def test_generic_is_accepted_by_pydantic(self):
         """
-        Hypothesis (BUG-01 FIXED): FrameworkConfig now rejects adapter='generic'
-        with a Pydantic ValidationError — fail-fast at config time, not at runtime.
+        Hypothesis (BUG-01 FIXED): FrameworkConfig now accepts adapter='generic'
+        because a GenericHarness is wired into the runner.
         """
-        from pydantic import ValidationError
-        with pytest.raises(ValidationError):
-            _make_config(adapter="generic")
+        config = _make_config(adapter="generic", agent_factory="os:getcwd")
+        assert config.adapter == "generic"
+
+    def test_generic_dispatches_to_generic_harness(self):
+        """
+        Hypothesis: Runner._build_harness returns a GenericHarness for the
+        'generic' adapter — no 'Unknown adapter' error, no SDK required.
+        """
+        import types
+
+        from aastf.harness.adapters.generic import GenericHarness
+
+        fake_sandbox = types.SimpleNamespace(base_url="http://127.0.0.1:9999")
+        config = _make_config(adapter="generic", agent_factory="os:getcwd")
+        harness = Runner(config)._build_harness(fake_sandbox)
+        assert isinstance(harness, GenericHarness)
 
     def test_valid_adapters_do_not_raise_at_dispatch(self):
         """
-        Hypothesis: The four real adapters don't raise AdapterNotFoundError at dispatch
+        Hypothesis: The real adapters don't raise AdapterNotFoundError at dispatch
         (they may raise import errors for missing SDKs, but not 'unknown adapter').
         """
         import types
         fake_sandbox = types.SimpleNamespace(base_url="http://127.0.0.1:9999")
-        for adapter in ("langgraph", "crewai", "openai_agents", "pydantic_ai"):
+        for adapter in ("langgraph", "crewai", "openai_agents", "pydantic_ai", "generic"):
             config = _make_config(adapter=adapter, agent_factory="os:getcwd")
             runner = Runner(config)
             # Should raise ImportError/AdapterNotFoundError about missing SDK,

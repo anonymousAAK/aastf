@@ -46,6 +46,7 @@ _ADAPTER_MODULES = {
     "crewai": ("aastf.harness.adapters.crewai", "CrewAIHarness"),
     "openai_agents": ("aastf.harness.adapters.openai_agents", "OpenAIAgentsHarness"),
     "pydantic_ai": ("aastf.harness.adapters.pydantic_ai", "PydanticAIHarness"),
+    "generic": ("aastf.harness.adapters.generic", "GenericHarness"),
     "mcp": ("aastf.harness.adapters.mcp", "MCPHarness"),
 }
 
@@ -121,9 +122,9 @@ def test_all_adapters_registered_in_runner() -> None:
 # ---------------------------------------------------------------------------
 
 
-_CONFIG_ADAPTERS = ["langgraph", "crewai", "openai_agents", "pydantic_ai"]
+_CONFIG_ADAPTERS = ["langgraph", "crewai", "openai_agents", "pydantic_ai", "generic"]
 # NOTE: "mcp" is used in Runner._build_harness but is not yet in
-# FrameworkConfig.adapter Literal. We test the 4 that are in the Literal.
+# FrameworkConfig.adapter Literal. We test the ones that are in the Literal.
 
 
 @pytest.mark.parametrize("adapter_name", _CONFIG_ADAPTERS)
