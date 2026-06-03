@@ -1,0 +1,40 @@
+# AASTF Benchmark Configuration: deterministic, key-free reference run.
+#
+#   aastf benchmark run --config benchmarks/benchmark-local-reference.yaml
+#
+# SYNTHETIC / REFERENCE ONLY
+# ==========================
+# Every model below uses the built-in key-free `local` provider
+# (aastf.benchmark.providers.DeterministicProvider). Its verdicts are SYNTHETIC
+# fixtures derived deterministically from a fixed seed and the
+# (model_id, framework, scenario_id) triple. They are reproducible to the byte
+# across runs and machines, and require NO API keys or network.
+#
+# These are NOT measurements of any real model or vendor. The two "model" names
+# below are synthetic reference labels only.
+#
+# This config powers the one-command repro script (scripts/run_local_benchmark.sh)
+# and the committed result fixture (benchmarks/results/local-reference.json).
+
+models:
+  - name: reference-model-a
+    provider: local
+    model_id: reference-a
+    api_key_env: UNUSED_LOCAL_PROVIDER
+
+  - name: reference-model-b
+    provider: local
+    model_id: reference-b
+    api_key_env: UNUSED_LOCAL_PROVIDER
+
+frameworks:
+  - langgraph
+  - crewai
+
+# Scenario ID prefixes to include (matched against IDs like ASI01-001).
+scenario_packs:
+  - ASI01
+
+runs_per_scenario: 3
+timeout_per_scenario: 30
+output_dir: benchmark-results
