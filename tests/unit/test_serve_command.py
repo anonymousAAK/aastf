@@ -8,6 +8,7 @@ and was otherwise untested.
 from __future__ import annotations
 
 import inspect
+import re
 
 from typer.testing import CliRunner
 
@@ -16,14 +17,25 @@ from aastf.cli.commands import serve as serve_cmd
 
 runner = CliRunner()
 
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain(text: str) -> str:
+    """Strip ANSI color codes. Rich colorizes option names (e.g. splitting
+    '--port' into escape-separated dashes), so help output must be de-styled
+    before substring assertions; CI emits colors even when a local TTY does not.
+    """
+    return _ANSI.sub("", text)
+
 
 def test_serve_is_top_level_command_not_subgroup():
     """`aastf serve --help` works directly (not `aastf serve serve`)."""
     result = runner.invoke(app, ["serve", "--help"])
     assert result.exit_code == 0
-    assert "--port" in result.stdout
+    out = _plain(result.stdout)
+    assert "--port" in out
     # A leftover sub-group would surface a nested 'serve' command in help.
-    assert "serve serve" not in result.stdout
+    assert "serve serve" not in out
 
 
 def test_serve_rejects_unknown_option():
