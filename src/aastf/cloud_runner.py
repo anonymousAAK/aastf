@@ -1,4 +1,8 @@
-"""Cloud runner — containerised AASTF execution on Kubernetes."""
+"""Cloud runner — containerised AASTF execution on Kubernetes.
+
+> **Status: Experimental** — this surface is under active development and
+> not yet production-ready. Models and APIs here may change without notice.
+"""
 
 from __future__ import annotations
 

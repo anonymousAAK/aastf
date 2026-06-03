@@ -40,8 +40,26 @@ def benchmark_run(
 
     result = asyncio.run(BenchmarkRunner(cfg).run())
 
+    total = result.summary.total_runs
+    errored = sum(1 for e in result.results if e.verdict == "ERROR")
+    out_path = cfg.output_dir / f"benchmark-{result.run_id}.json"
+
+    # Fail honestly: if every run errored, no benchmarking actually happened
+    # (direct execution from a config requires a configured agent factory per
+    # model/framework — see benchmarks/README.md). Do not report success.
+    if total > 0 and errored == total:
+        console.print(
+            f"\n[red]Benchmark produced no successful runs[/red] "
+            f"({errored}/{total} errored).\n"
+            "Direct execution from a benchmark config requires a configured agent "
+            "factory for each (model, framework) pair; none was available, so every "
+            "run was recorded as ERROR. See benchmarks/README.md."
+        )
+        console.print(f"[dim]All-ERROR result saved to {out_path}[/dim]")
+        raise typer.Exit(1)
+
     console.print(f"\n[green]Benchmark complete![/green]  Run ID: {result.run_id}")
-    console.print(f"Total runs: {result.summary.total_runs}")
+    console.print(f"Total runs: {total}" + (f"  ([yellow]{errored} errored[/yellow])" if errored else ""))
 
     # Print summary table
     table = Table(title="Vulnerability Rate by Model")
@@ -53,7 +71,6 @@ def benchmark_run(
         table.add_row(model, f"{rate}%", f"{lat}")
     console.print(table)
 
-    out_path = cfg.output_dir / f"benchmark-{result.run_id}.json"
     console.print(f"\n[dim]Results saved to {out_path}[/dim]")
 
 

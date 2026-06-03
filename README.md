@@ -1,13 +1,15 @@
 # AASTF — Agentic AI Security Testing Framework
 
-> **84.30% of production AI agents can be hijacked by adversarial input.**
-> AASTF is the first tool that tests the *agent system* — not just the model.
+> **Up to 84.30% of agent tasks were successfully attacked in published benchmarks
+> ([Agent Security Bench, Zhang et al., ICLR 2025](https://arxiv.org/abs/2410.02644)).**
+> AASTF tests the *agent system* — the LLM plus its tools, memory, and planning
+> loop — not just the model in isolation.
 
 [![CI](https://github.com/anonymousAAK/aastf/actions/workflows/ci.yml/badge.svg)](https://github.com/anonymousAAK/aastf/actions)
 [![PyPI](https://img.shields.io/pypi/v/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
 [![Downloads](https://img.shields.io/pypi/dm/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
-[![Tests](https://img.shields.io/badge/tests-2800%20passed-brightgreen)](TESTING.md)
-[![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
+[![Tests](https://img.shields.io/badge/tests-2961%20passed-brightgreen)](TESTING.md)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20296480.svg)](https://doi.org/10.5281/zenodo.20296480)
 [![OWASP ASI](https://img.shields.io/badge/OWASP-ASI%20Top%2010-red)](https://genai.owasp.org)
@@ -38,7 +40,27 @@ AASTF uses a **three-class verdict system** that goes beyond binary pass/fail:
 | Garak | Model outputs | No | No | No |
 | PyRIT | Model responses | No | Partial | No |
 | DeepTeam | Prompt/response | No | Partial | Partial |
-| **AASTF** | **Agent execution graph** | **Yes** | **Yes** | **Full** |
+| **AASTF** | **Agent execution graph** | **Yes (LangGraph)** | **Yes** | **Yes** |
+
+### Adapter support matrix
+
+Interception depth differs by framework. Only LangGraph has full,
+event-level tool-call interception today; the others are at varying
+stages of maturity and several are experimental.
+
+| Adapter | Status | Interception |
+|---------|--------|--------------|
+| LangGraph | **Full** | Event-level via `astream_events(v2)` (tool calls, chains, parent run IDs) |
+| Generic | Supported | Works against any agent that conforms to the agent-factory contract (tools list in, callable out) |
+| CrewAI | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+| OpenAI Agents | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+| PydanticAI | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+| Google ADK | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+| Microsoft Agent | Experimental | Requires an agent-factory contract; coverage not yet at LangGraph parity |
+
+Experimental adapters are present in the codebase and exercised by tests,
+but their interception fidelity and scenario coverage are not yet on par
+with LangGraph. Treat their results as indicative, not authoritative.
 
 ---
 
@@ -79,7 +101,7 @@ pip install "aastf[langgraph]"
 ```
 
 ```bash
-# Scan your agent against all 100+ built-in OWASP ASI scenarios
+# Scan your agent against all 130+ built-in OWASP ASI scenarios
 aastf run myapp.agent:create_agent --adapter langgraph
 
 # Target specific categories
@@ -106,7 +128,7 @@ def create_agent(tools: list):
 
 ## What AASTF Tests
 
-100+ built-in attack scenarios mapped to the [OWASP Top 10 for Agentic Applications (December 2025)][owasp-asi]:
+130+ built-in attack scenarios mapped to the [OWASP Top 10 for Agentic Applications (December 2025)][owasp-asi]:
 
 | Code | Threat | Example Attack |
 |------|--------|---------------|
@@ -128,7 +150,7 @@ def create_agent(tools: list):
 ```
 Your Agent                     AASTF
 -----------                    ------
-                               1. Loads 100+ attack scenarios
+                               1. Loads 130+ attack scenarios
                                2. Starts sandbox server (real HTTP, no side effects)
 graph.astream_events() ------> 3. Instruments execution via LangGraph callback bus
   on_tool_start               4. Injects adversarial payload at configured point
@@ -184,7 +206,7 @@ Findings appear natively in your repository's **Security** tab.
 ```bash
 aastf run <agent_module>                    # Full scan
 aastf run . --dry-run                       # Preview scenarios
-aastf scenario list                         # Browse all 100+ scenarios
+aastf scenario list                         # Browse all 130+ scenarios
 aastf scenario list --category ASI02 --severity CRITICAL
 aastf scenario validate ./my-scenario.yaml  # Validate before adding
 aastf scenario show ASI02-001               # Full scenario details
@@ -248,7 +270,7 @@ Additionally, 8 real-world CVE-derived scenarios and system prompt extraction + 
 Run MCP-specific scans:
 
 ```bash
-aastf run --adapter mcp --agent-factory your_agent:factory
+aastf run your_agent:factory --adapter mcp
 ```
 
 ---
@@ -274,10 +296,14 @@ They signal output sanitization obligations under Article 15, not Article 9 risk
 Layer 5: Platform   [Public Benchmark + Enterprise Cloud — coming]
 Layer 4: Reporting   JSON . SARIF . HTML . Compliance
 Layer 3: Sandbox     FastAPI Mock Backend . Real HTTP Calls
-Layer 2: Scenarios   YAML Registry . 100+ OWASP ASI Attack Scenarios
+Layer 2: Scenarios   YAML Registry . 130+ OWASP ASI Attack Scenarios
 Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
-           LangGraph    OpenAI Agents    CrewAI    PydanticAI
+           LangGraph (full) . Generic (supported)
+           CrewAI / OpenAI Agents / PydanticAI / Google ADK / MS Agent (experimental)
 ```
+
+See the [adapter support matrix](#adapter-support-matrix) for interception
+depth per framework.
 
 ---
 
@@ -292,23 +318,22 @@ Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
 
 ## Test Results
 
-**1002 tests · 0 failures · 0 warnings · lint clean**
+**2961 tests collected · 2 skipped · lint clean** (measured via
+`pytest tests/ --collect-only -q` and a full `pytest` run; the collected count is
+verified by `tests/adversarial/test_h_docs.py`, which fails CI if this README
+drifts from the actual collected count).
 
-| Suite | Tests | What it covers |
-|-------|-------|---------------|
-| `test_adapters` | 7 | LangGraph, CrewAI, OpenAI Agents, PydanticAI, Generic adapters |
-| `test_collector` | 16 | TraceCollector + LangGraph `astream_events` v2 ingestion |
-| `test_evaluators` | 67 | All 10 ASI evaluators — VULNERABLE, REFUSAL_ECHO, and SAFE verdicts |
-| `test_html_reporter` | 23 | HTML compliance report rendering, REFUSAL_ECHO panels |
-| `test_loader` | 13 | YAML scenario loading, validation, Jinja2 rendering |
-| `test_models_*` | 40 | Pydantic schema validation, serialization, round-trips |
-| `test_pydantic_ai_adapter` | 3 | PydanticAI harness |
-| `test_registry` | 15 | Scenario registry filter, get, load |
-| `test_runner` | 30 | Scan orchestration, SARIF/JSON reporters, REFUSAL_ECHO accumulation, strict-output flag |
-| `test_scoring` | 24 | CVSS scoring, EU AI Act readiness, REFUSAL_ECHO 35% discount |
-| `test_scoring_hypothesis` | 7 | Property-based: score always in [0,100], REFUSAL_ECHO <= VULNERABLE |
-| `test_trend_tracker` | 16 | SQLite trend DB record, retrieve, compare, trend direction |
-| `test_scenario_coverage` | 18 | Self-audit: 65 scenarios structurally valid, >= 5/category |
+Representative coverage by area:
+
+| Area | What it covers |
+|------|---------------|
+| Adapters | LangGraph, CrewAI, OpenAI Agents, PydanticAI, n8n, Flowise, Generic harnesses |
+| Evaluators | All 10 ASI evaluators — VULNERABLE, REFUSAL_ECHO, and SAFE verdicts |
+| Scoring | CVSS-adapted scoring (cumulative, monotonic risk), EU AI Act readiness, REFUSAL_ECHO 35% discount |
+| Reporting | SARIF/JSON/HTML reporters, REFUSAL_ECHO panels, evidence packs |
+| Scenarios | YAML loading, Jinja2 rendering, registry filtering, self-audit structural validation |
+| Property-based | Hypothesis: risk score always in [0,100] and monotonic, REFUSAL_ECHO <= VULNERABLE |
+| Adversarial | Correctness, schema fuzzing, bypass, runtime, supply-chain, and docs-truthfulness suites |
 
 Full test list: [TESTING.md](TESTING.md)
 
@@ -340,6 +365,6 @@ pytest tests/unit/
 
 MIT. See [LICENSE](LICENSE).
 
-*84.30% of production AI agents can be hijacked. AASTF exists because that number needs to go to zero.*
+*Published benchmarks report agent attack-success rates as high as 84.30% ([Agent Security Bench](https://arxiv.org/abs/2410.02644)). AASTF exists because that number needs to go to zero.*
 
 [owasp-asi]: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/

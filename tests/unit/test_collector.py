@@ -226,3 +226,47 @@ class TestIngestStreamEvent:
         assert trace.tools_called() == ["web_search", "send_email"]
         assert trace.call_count("web_search") == 1
         assert trace.call_count("send_email") == 1
+
+
+class TestCollectorMetadataAndDelegations:
+    def test_set_metadata_appears_in_trace(self):
+        c = _make_collector()
+        c.set_metadata("inject_into", "user_message")
+        c.set_metadata("tool_call_count", 3)
+        trace = c.build_trace()
+        assert trace.metadata["inject_into"] == "user_message"
+        assert trace.metadata["tool_call_count"] == 3
+
+    def test_nested_chain_parentage_creates_delegation(self):
+        """A chain whose parent is a known chain is recorded as a delegation."""
+        c = _make_collector()
+        # Root chain
+        c.ingest_stream_event(
+            {"event": "on_chain_start", "name": "root", "run_id": "root", "parent_ids": []}
+        )
+        # Child chain whose parent is the known root -> delegation
+        c.ingest_stream_event(
+            {
+                "event": "on_chain_start",
+                "name": "sub_agent",
+                "run_id": "child",
+                "parent_ids": ["root"],
+            }
+        )
+        trace = c.build_trace()
+        assert "child" in trace.delegations
+        assert trace.iteration_count == 2
+
+    def test_unknown_parent_is_not_a_delegation(self):
+        """A chain whose parent is not a known run is not a delegation."""
+        c = _make_collector()
+        c.ingest_stream_event(
+            {
+                "event": "on_chain_start",
+                "name": "x",
+                "run_id": "x",
+                "parent_ids": ["never-seen"],
+            }
+        )
+        trace = c.build_trace()
+        assert trace.delegations == []

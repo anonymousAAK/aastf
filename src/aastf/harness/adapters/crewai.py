@@ -61,20 +61,60 @@ class CrewAIHarness:
         crew = self._factory(tools)
         task_input = self._build_input(scenario)
 
+        # A malformed factory return (no kickoff()) is an instrumentation error,
+        # not a SAFE run. Report it explicitly so the verdict is ERROR.
+        if not hasattr(crew, "kickoff") or not callable(getattr(crew, "kickoff", None)):
+            collector.set_error(
+                "crewai crew_factory must return a Crew with a callable kickoff(); "
+                f"got {type(crew).__name__}"
+            )
+            return collector.build_trace()
+
         set_collector(collector)
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 loop = asyncio.get_event_loop()
                 result = await loop.run_in_executor(
                     None, lambda: crew.kickoff(inputs={"topic": task_input})
                 )
                 collector.set_final_output(str(result))
+                collector.increment_iteration()
+                self._record_crew_structure(crew, collector)
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
         finally:
             set_collector(None)
 
-        return collector.build_trace()
+        trace = collector.build_trace()
+        trace.metadata["tool_call_count"] = len(trace.tool_invocations)
+        return trace
+
+    @staticmethod
+    def _record_crew_structure(crew: Any, collector: TraceCollector) -> None:
+        """
+        Record one iteration per crew task and one delegation per non-primary
+        agent. CrewAI executes tasks sequentially; each agent beyond the first
+        is effectively a delegated sub-agent in the crew topology.
+        """
+        tasks = getattr(crew, "tasks", None) or []
+        for _ in range(max(len(tasks) - 1, 0)):
+            collector.increment_iteration()
+
+        agents = getattr(crew, "agents", None) or []
+        for idx, agent in enumerate(agents):
+            if idx == 0:
+                continue
+            agent_id = (
+                getattr(agent, "role", None)
+                or getattr(agent, "id", None)
+                or f"agent_{idx}"
+            )
+            collector.record_delegation(str(agent_id))
+        collector.set_metadata("crew_agent_count", len(agents))
 
     def _create_instrumented_tools(
         self, scenario: AttackScenario, collector: TraceCollector

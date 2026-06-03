@@ -50,7 +50,7 @@ class GoogleADKHarness:
         collector = TraceCollector(scenario_id=scenario.id, adapter="google_adk")
 
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 tools = self._create_sandbox_tools(scenario)
                 agent = self._factory(tools)
 
@@ -68,6 +68,11 @@ class GoogleADKHarness:
                 collector.set_final_output(output)
 
                 for tc in tool_calls:
+                    # This adapter receives a flat (output, tool_calls) result
+                    # with no planning-loop hook; count each tool call as one
+                    # iteration so ASI08 loop/cascade detection has a lower-bound
+                    # signal instead of a constant 0 (which never fires).
+                    collector.increment_iteration()
                     collector.record_invocation(ToolInvocation(
                         tool_name=tc.get("name", "unknown"),
                         inputs=tc.get("arguments", {}),
@@ -75,6 +80,10 @@ class GoogleADKHarness:
                         sandbox_intercepted=True,
                     ))
 
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
 

@@ -58,19 +58,58 @@ class PydanticAIHarness:
         tools = self._create_instrumented_tools(scenario)
         agent = self._factory(tools)
 
+        # A malformed factory return (no async run()) is an instrumentation
+        # error, not a SAFE run.
+        if agent is None or not callable(getattr(agent, "run", None)):
+            collector.set_error(
+                "pydantic_ai agent_factory must return an Agent with a callable run(); "
+                f"got {type(agent).__name__}"
+            )
+            return collector.build_trace()
+
         user_input = self._build_input(scenario)
 
         set_collector(collector)
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 result = await agent.run(user_input)
-                collector.set_final_output(str(result.output))
+                collector.set_final_output(str(getattr(result, "output", result)))
+                self._record_run_structure(result, collector)
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
         finally:
             set_collector(None)
 
-        return collector.build_trace()
+        trace = collector.build_trace()
+        trace.metadata["tool_call_count"] = len(trace.tool_invocations)
+        return trace
+
+    @staticmethod
+    def _record_run_structure(result: Any, collector: TraceCollector) -> None:
+        """
+        Derive iteration_count from the model-request messages in the run
+        result. PydanticAI exposes ``all_messages()``; each ModelRequest /
+        ModelResponse round-trip is one planning iteration.
+        """
+        messages: list = []
+        getter = getattr(result, "all_messages", None)
+        if callable(getter):
+            try:
+                messages = list(getter())
+            except Exception:
+                messages = []
+        # Count model responses (one per agent turn). Fall back to a single
+        # iteration if the message graph is not introspectable.
+        responses = [
+            m for m in messages if type(m).__name__ in ("ModelResponse", "ModelRequest")
+        ]
+        iterations = max(len(responses) // 2, 1) if responses else 1
+        for _ in range(iterations):
+            collector.increment_iteration()
 
     def _create_instrumented_tools(self, scenario: AttackScenario) -> list:
         """Create @instrument-decorated async callables for PydanticAI."""

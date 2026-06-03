@@ -44,7 +44,7 @@ class MCPHarness:
         collector = TraceCollector(scenario_id=scenario.id, adapter="mcp")
 
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 async with httpx.AsyncClient() as client:
                     # Step 1: Fetch tool list (may be poisoned)
                     tools_resp = await client.post(
@@ -93,6 +93,9 @@ class MCPHarness:
 
                     # Record tool calls
                     for tc in tool_calls:
+                        # See google_adk: count each tool call as one iteration so
+                        # ASI08 loop/cascade detection has a lower-bound signal.
+                        collector.increment_iteration()
                         collector.record_invocation(ToolInvocation(
                             tool_name=tc.get("name", "unknown"),
                             inputs=tc.get("arguments", {}),
@@ -100,6 +103,10 @@ class MCPHarness:
                             sandbox_intercepted=True,
                         ))
 
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
 

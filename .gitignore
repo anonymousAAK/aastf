@@ -22,3 +22,7 @@ htmlcov/
 *.pdf
 plan.md
 node_modules/
+# Generated MkDocs output — build in CI / GitHub Pages, do not commit
+site/
+# Benchmark run output (default output_dir)
+benchmark-results/

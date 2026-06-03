@@ -126,5 +126,5 @@ In GitHub Actions:
 | ASI06 — Memory Poisoning | Art. 15 (robustness) | Context manipulation attacks |
 | ASI07 — Inter-Agent | Art. 9 (risk management) | Insecure multi-agent communication |
 | ASI08 — Cascading Failures | Art. 9 (risk management) | Resource exhaustion and chain failures |
-| ASI09 — Trust Exploitation | Art. 9, Art. 52 (transparency) | Social engineering via agent output |
+| ASI09 — Trust Exploitation | Art. 9, Art. 50 (transparency) | Social engineering via agent output |
 | ASI10 — Rogue Agents | Art. 9 (risk management) | Agents acting outside authorized scope |

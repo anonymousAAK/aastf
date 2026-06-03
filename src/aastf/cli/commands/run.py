@@ -10,7 +10,12 @@ import typer
 from rich.console import Console
 
 from ...models.config import FrameworkConfig
-from ...models.result import ScanReport, Verdict, VulnerabilityFinding
+from ...models.result import (
+    VULNERABLE_VERDICTS,
+    ScanReport,
+    Verdict,
+    VulnerabilityFinding,
+)
 from ...models.scenario import Severity
 
 app = typer.Typer()
@@ -39,7 +44,8 @@ def get_blocking_findings(
         for f in report.findings
         if f.severity >= fail_severity
         and (
-            f.verdict == Verdict.VULNERABLE or (strict_output and f.verdict == Verdict.REFUSAL_ECHO)
+            f.verdict in VULNERABLE_VERDICTS
+            or (strict_output and f.verdict == Verdict.REFUSAL_ECHO)
         )
     ]
 
@@ -118,11 +124,13 @@ def run(
     """Execute a security scan against an agent system."""
     from ...models.config import FrameworkConfig
 
-    # Validate paths do not escape cwd (path traversal prevention)
+    # Validate paths do not escape cwd (path traversal prevention).
+    # Use is_relative_to, not string startswith: a plain prefix check would let a
+    # sibling like "/work/project-evil" pass the guard for cwd "/work/project".
     cwd = Path.cwd().resolve()
     for label, raw in [("output_dir", output_dir), *[("scenario_dir", s) for s in scenario_dir]]:
         resolved = Path(raw).resolve()
-        if not str(resolved).startswith(str(cwd)):
+        if not resolved.is_relative_to(cwd):
             console.print(
                 f"[bold red]Path error:[/bold red] --{label.replace('_', '-')} {raw!r} "
                 f"resolves to {resolved}, which is outside the working directory {cwd}"
@@ -199,6 +207,12 @@ def run(
 
         out = SARIFReporter().write(report, run_dir / "results.sarif")
         console.print(f"[dim]SARIF report:[/dim] {out}")
+
+    if "html" in [f.lower() for f in format]:
+        from ...reporting.html_reporter import HTMLReporter
+
+        out = HTMLReporter().write(report, run_dir / "report.html")
+        console.print(f"[dim]HTML report:[/dim] {out}")
 
     # Exit code logic
     fail_severity = Severity(fail_on) if fail_on else None

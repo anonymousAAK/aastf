@@ -23,6 +23,7 @@ from .cache import ResponseCache
 from .exceptions import AdapterNotFoundError
 from .models.config import FrameworkConfig
 from .models.result import (
+    VULNERABLE_VERDICTS,
     EvaluationResult,
     ScanReport,
     TestResult,
@@ -32,7 +33,7 @@ from .models.result import (
 from .models.scenario import ASICategory, AttackScenario
 from .models.trace import AgentTrace
 from .sandbox.server import SandboxServer
-from .scenarios.evaluators import get_evaluator
+from .scenarios.evaluators import get_evaluator_for
 from .scenarios.registry import ScenarioRegistry
 from .scoring import annotate_findings, compute_risk_score, eu_ai_act_readiness
 
@@ -148,6 +149,10 @@ class Runner:
             from .harness.adapters.pydantic_ai import PydanticAIHarness
 
             return PydanticAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
+        elif adapter == "generic":
+            from .harness.adapters.generic import GenericHarness
+
+            return GenericHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         elif adapter == "mcp":
             from .harness.adapters.mcp import MCPHarness
 
@@ -162,7 +167,8 @@ class Runner:
             return MSAgentHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         raise AdapterNotFoundError(
             f"Unknown adapter: {adapter!r}. "
-            "Supported: langgraph, crewai, openai_agents, pydantic_ai, mcp, google_adk, ms_agent"
+            "Supported: langgraph, crewai, openai_agents, pydantic_ai, generic, "
+            "mcp, google_adk, ms_agent"
         )
 
     async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:
@@ -209,7 +215,22 @@ class Runner:
         self, scenario: AttackScenario, trace: AgentTrace, t0: datetime,
     ) -> TestResult:
         """Evaluate a trace against scenario detection criteria."""
-        evaluator = get_evaluator(scenario.category)
+        # A trace that carries an error (e.g. the agent timed out or the adapter
+        # recorded a failure without raising) must NOT be scored against detection
+        # criteria — an empty/partial trace would otherwise evaluate to SAFE and
+        # silently mask the failure as a passing result.
+        if trace.error:
+            return TestResult(
+                scenario_id=scenario.id,
+                scenario_name=scenario.name,
+                category=scenario.category,
+                severity=scenario.severity,
+                verdict=Verdict.ERROR,
+                trace=trace,
+                execution_time_ms=(datetime.now(timezone.utc) - t0).total_seconds() * 1000,
+            )
+
+        evaluator = get_evaluator_for(scenario)
         if evaluator is None:
             logging.getLogger(__name__).warning(
                 "No evaluator registered for category %s", scenario.category
@@ -242,12 +263,9 @@ class Runner:
 
         finding: VulnerabilityFinding | None = None
 
-        if eval_result.verdict in (
-            Verdict.VULNERABLE,
-            Verdict.REFUSAL_ECHO,
-            Verdict.TOOL_POISONING,
-            Verdict.SCHEMA_POISONING,
-            Verdict.PREFERENCE_MANIPULATION,
+        if (
+            eval_result.verdict in VULNERABLE_VERDICTS
+            or eval_result.verdict == Verdict.REFUSAL_ECHO
         ):
             finding = VulnerabilityFinding(
                 scenario_id=scenario.id,
@@ -284,12 +302,7 @@ class Runner:
         do not produce VulnerabilityFinding objects so they are never appended.
         """
         report.results.append(result)
-        if result.verdict in (
-            Verdict.VULNERABLE,
-            Verdict.TOOL_POISONING,
-            Verdict.SCHEMA_POISONING,
-            Verdict.PREFERENCE_MANIPULATION,
-        ):
+        if result.verdict in VULNERABLE_VERDICTS:
             report.vulnerable += 1
             if result.finding:
                 report.findings.append(result.finding)
@@ -316,9 +329,12 @@ class Runner:
                     "inconclusive": 0,
                     "error": 0,
                 }
-            verdict_key = r.verdict.value.lower()
-            # MCP-specific verdicts count as vulnerable in the summary
-            if verdict_key in ("tool_poisoning", "schema_poisoning", "preference_manipulation"):
+            # All "attack succeeded" verdicts (MCP-specific and multi-agent)
+            # roll up into the vulnerable bucket; everything else uses its own
+            # key. .get() keeps the summary robust against any future verdict.
+            if r.verdict in VULNERABLE_VERDICTS:
                 verdict_key = "vulnerable"
-            summary[cat][verdict_key] += 1
+            else:
+                verdict_key = r.verdict.value.lower()
+            summary[cat][verdict_key] = summary[cat].get(verdict_key, 0) + 1
         return summary

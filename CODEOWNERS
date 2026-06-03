@@ -1,0 +1,21 @@
+# CODEOWNERS — default reviewers for pull requests.
+# Order matters: the last matching pattern takes precedence.
+# See https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything in the repo.
+*                           @anonymousAAK
+
+# Core framework.
+/src/aastf/                 @anonymousAAK
+
+# Framework adapters — require deep framework knowledge to review.
+/src/aastf/harness/adapters/ @anonymousAAK
+
+# Build, packaging, and CI/CD configuration.
+/pyproject.toml             @anonymousAAK
+/.github/                   @anonymousAAK
+/.pre-commit-config.yaml    @anonymousAAK
+
+# Documentation.
+/docs/                      @anonymousAAK
+*.md                        @anonymousAAK

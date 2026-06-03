@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from .models.result import ScanReport, Verdict
+from .models.result import ACTIONABLE_VERDICTS, ScanReport, Verdict
 from .models.scenario import Severity
 
 
@@ -64,13 +64,10 @@ class DriftReport(BaseModel):
         return "\n".join(lines)
 
 
-_VULNERABLE_VERDICTS = {
-    Verdict.VULNERABLE,
-    Verdict.TOOL_POISONING,
-    Verdict.SCHEMA_POISONING,
-    Verdict.PREFERENCE_MANIPULATION,
-    Verdict.REFUSAL_ECHO,
-}
+# Drift treats every behavioural-compromise verdict AND REFUSAL_ECHO as a
+# regression target. Sourced from the canonical set so multi-agent verdicts
+# (INFECTION_PROPAGATED/COLLUSION/WATCHDOG_BYPASS) are not silently ignored.
+_VULNERABLE_VERDICTS = set(ACTIONABLE_VERDICTS)
 
 _SAFE_VERDICTS = {Verdict.SAFE}
 

@@ -136,6 +136,9 @@ aastf run your_agent:create_agent --scenario-dir scenarios/community/ --category
 ```bash
 git clone https://github.com/anonymousAAK/aastf
 cd aastf
+
+# Editable install with the dev tools (pytest, ruff, mypy, coverage, ...).
+# Add the langgraph extra if you want to run the adapter-backed tests.
 pip install -e ".[dev,langgraph]"
 
 # Run unit tests
@@ -147,6 +150,9 @@ pytest tests/integration/ -v
 # Run linter
 ruff check src/ tests/
 
+# Optional: coverage report (matches the non-blocking CI coverage job)
+pytest tests/unit/ --cov=aastf --cov-report=term-missing
+
 # Run the full scenario validation
 python -c "
 from aastf.scenarios.registry import ScenarioRegistry
@@ -154,6 +160,33 @@ r = ScenarioRegistry().load_builtin()
 print(f'{len(r)} scenarios loaded successfully')
 "
 ```
+
+### Pre-commit hooks
+
+We use [pre-commit](https://pre-commit.com/) to run `ruff` and a set of
+standard hygiene hooks (trailing whitespace, end-of-file, YAML/TOML syntax,
+merge-conflict markers) before each commit:
+
+```bash
+pip install pre-commit
+pre-commit install            # set up the git hook
+pre-commit run --all-files    # run against the whole repo once
+```
+
+The same `ruff` checks run in CI, so installing the hook locally keeps you in
+sync with the lint gate.
+
+### Type checking (gating)
+
+The `src/` tree is `mypy`-clean and type checking is a **CI gate** — type
+regressions fail the build. Run it locally before pushing:
+
+```bash
+mypy
+```
+
+Configuration lives in the `[tool.mypy]` block of `pyproject.toml`. Keep new code
+fully typed.
 
 ---
 
@@ -182,7 +215,7 @@ with the framework-specific instrumentation approach.
 
 ## Code Style
 
-- Python 3.12+, `ruff` for linting, no `mypy` required for contributions
+- Python 3.10+, `ruff` for linting; `mypy` type checking is a CI gate — see Type checking above
 - Pydantic v2 for all data models
 - `async/await` throughout — no blocking I/O in harness code
 - Tests required for all new evaluators and adapters

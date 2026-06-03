@@ -1,4 +1,4 @@
-name: Publish @aastf/core to npm
+name: Publish asi-scan to npm
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci  # reproducible install from the committed package-lock.json
 
       - name: Build TypeScript
         run: npm run build

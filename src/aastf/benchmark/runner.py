@@ -11,6 +11,7 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 
 from ..scenarios.registry import ScenarioRegistry
+from .providers import AgentProvider, build_provider
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,10 @@ class BenchmarkEntry(BaseModel):
     severity: str
     latency_ms: float
     run_index: int
+    # True when the verdict is a synthetic/reference fixture (deterministic
+    # provider), not a measurement of a real model. Defaulted for backward
+    # compatibility with previously saved results.
+    synthetic: bool = False
 
 
 class BenchmarkSummary(BaseModel):
@@ -111,6 +116,9 @@ class BenchmarkResult(BaseModel):
     run_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # True when every entry came from the synthetic/reference (deterministic)
+    # provider. Such results are reproducible fixtures, NOT real-model measurements.
+    synthetic: bool = False
     config: BenchmarkConfig
     results: list[BenchmarkEntry] = Field(default_factory=list)
     summary: BenchmarkSummary = Field(
@@ -147,13 +155,40 @@ _VULNERABLE_VERDICTS = {
 class BenchmarkRunner:
     """Orchestrates cross-model, cross-framework benchmark runs.
 
-    The runner does NOT call LLM APIs directly. It delegates to the existing
-    ``aastf.runner.Runner`` which uses framework adapters. This design means
-    tests can mock ``_run_single_scenario`` without touching network code.
+    The runner does NOT call LLM APIs directly. It delegates to a pluggable
+    :class:`aastf.benchmark.providers.AgentProvider`:
+
+    * If a ``provider`` is supplied explicitly, it is always used.
+    * Otherwise, if every configured model uses the key-free ``local`` provider,
+      the built-in synthetic/reference :class:`DeterministicProvider` is wired
+      automatically — so ``benchmark run`` works end-to-end with no API keys and
+      produces fully reproducible (but clearly synthetic) results.
+    * Otherwise (real providers requested but none injected) the runner falls
+      back to the legacy adapter path, which records ERROR per cell unless a real
+      agent factory is wired. Real providers should be passed via ``provider=``;
+      see the :class:`AgentProvider` agent-factory contract.
+
+    Tests can mock ``_run_single_scenario`` without touching network code.
     """
 
-    def __init__(self, config: BenchmarkConfig) -> None:
+    def __init__(
+        self,
+        config: BenchmarkConfig,
+        provider: AgentProvider | None = None,
+        *,
+        seed: int = 1729,
+    ) -> None:
         self._config = config
+        if provider is None and all(m.provider == "local" for m in config.models):
+            provider = build_provider("local", seed=seed)
+        self._provider = provider
+        self._registry: ScenarioRegistry | None = None
+
+    def _get_registry(self) -> ScenarioRegistry:
+        """Load (and cache) the built-in scenario registry once per runner."""
+        if self._registry is None:
+            self._registry = ScenarioRegistry().load_builtin()
+        return self._registry
 
     # ------------------------------------------------------------------ public
 
@@ -167,9 +202,19 @@ class BenchmarkRunner:
                     matrix.append((model, framework, sid))
         return matrix
 
-    async def run(self) -> BenchmarkResult:
-        """Execute the full benchmark and return results."""
-        started_at = datetime.now(timezone.utc)
+    async def run(self, *, run_id: str | None = None) -> BenchmarkResult:
+        """Execute the full benchmark and return results.
+
+        Args:
+            run_id: When provided, pins both the run id and the started/completed
+                timestamps to fixed deterministic values. Combined with the
+                key-free ``local`` provider this yields a byte-identical result
+                JSON across runs — used to commit a reproducible fixture.
+        """
+        deterministic = run_id is not None
+        # Fixed epoch timestamp keeps committed fixtures byte-stable.
+        fixed_ts = datetime(2025, 1, 1, tzinfo=timezone.utc)
+        started_at = fixed_ts if deterministic else datetime.now(timezone.utc)
         matrix = self.generate_matrix()
         entries: list[BenchmarkEntry] = []
 
@@ -186,16 +231,22 @@ class BenchmarkRunner:
                 )
                 entries.append(entry)
 
-        completed_at = datetime.now(timezone.utc)
+        completed_at = fixed_ts if deterministic else datetime.now(timezone.utc)
         summary = self._compute_summary(entries)
 
-        result = BenchmarkResult(
+        synthetic = bool(entries) and all(e.synthetic for e in entries)
+
+        result_kwargs: dict[str, Any] = dict(
             started_at=started_at,
             completed_at=completed_at,
+            synthetic=synthetic,
             config=self._config,
             results=entries,
             summary=summary,
         )
+        if run_id is not None:
+            result_kwargs["run_id"] = run_id
+        result = BenchmarkResult(**result_kwargs)
 
         # Auto-save
         self._config.output_dir.mkdir(parents=True, exist_ok=True)
@@ -209,7 +260,7 @@ class BenchmarkRunner:
 
     def _resolve_scenarios(self) -> list[str]:
         """Load scenarios matching the configured packs (prefix filter)."""
-        registry = ScenarioRegistry().load_builtin()
+        registry = self._get_registry()
         all_scenarios = registry.all()
         matched: list[str] = []
         for s in all_scenarios:
@@ -228,40 +279,59 @@ class BenchmarkRunner:
     ) -> BenchmarkEntry:
         """Run one (model, framework, scenario) combination.
 
-        This method is the primary mock point for tests. In production it
-        delegates to ``aastf.runner.Runner``.
+        This method is the primary mock point for tests. When a provider is
+        configured (the default for the key-free ``local`` provider) it is used
+        directly — no NotImplementedError path. Otherwise the runner falls back
+        to the legacy adapter delegation, which records ERROR unless a real agent
+        factory is wired.
         """
-        from ..models.config import FrameworkConfig
-        from ..runner import Runner
-
-        # Build a minimal FrameworkConfig for this combo
-        fc = FrameworkConfig(
-            adapter=framework,
-            agent_factory="__benchmark__:placeholder",
-            timeout_seconds=self._config.timeout_per_scenario,
-        )
-
-        runner = Runner(fc)
-
-        # Load the specific scenario
-        registry = ScenarioRegistry().load_builtin()
+        # Load the specific scenario (registry is cached per runner).
+        registry = self._get_registry()
         scenario = registry.get(scenario_id)
 
+        synthetic = False
         t0 = datetime.now(timezone.utc)
-        try:
-            result = await runner._run_one(
-                harness=await self._build_harness(runner, model, framework),
-                scenario=scenario,
+
+        if self._provider is not None:
+            try:
+                outcome = await self._provider.evaluate(
+                    model, framework, scenario, run_index,
+                )
+                verdict = outcome.verdict
+                latency = outcome.latency_ms
+                synthetic = outcome.synthetic
+            except Exception as exc:
+                logger.warning(
+                    "Benchmark provider error: %s / %s / %s — %s",
+                    model.name, framework, scenario_id, exc,
+                )
+                verdict = "ERROR"
+                latency = (datetime.now(timezone.utc) - t0).total_seconds() * 1000
+        else:
+            from ..models.config import FrameworkConfig
+            from ..runner import Runner
+
+            # Build a minimal FrameworkConfig for this combo.
+            fc = FrameworkConfig(
+                adapter=framework,  # type: ignore[arg-type]  # validated framework name
+                agent_factory="__benchmark__:placeholder",
+                timeout_seconds=self._config.timeout_per_scenario,
             )
-            verdict = result.verdict.value
-            latency = result.execution_time_ms
-        except Exception as exc:
-            logger.warning(
-                "Benchmark error: %s / %s / %s — %s",
-                model.name, framework, scenario_id, exc,
-            )
-            verdict = "ERROR"
-            latency = (datetime.now(timezone.utc) - t0).total_seconds() * 1000
+            runner = Runner(fc)
+            try:
+                result = await runner._run_one(
+                    harness=await self._build_harness(runner, model, framework),
+                    scenario=scenario,
+                )
+                verdict = result.verdict.value
+                latency = result.execution_time_ms
+            except Exception as exc:
+                logger.warning(
+                    "Benchmark error: %s / %s / %s — %s",
+                    model.name, framework, scenario_id, exc,
+                )
+                verdict = "ERROR"
+                latency = (datetime.now(timezone.utc) - t0).total_seconds() * 1000
 
         return BenchmarkEntry(
             model=model.name,
@@ -272,6 +342,7 @@ class BenchmarkRunner:
             severity=scenario.severity.value,
             latency_ms=latency,
             run_index=run_index,
+            synthetic=synthetic,
         )
 
     async def _build_harness(
@@ -279,11 +350,16 @@ class BenchmarkRunner:
     ) -> Any:
         """Build a framework harness configured for the given model.
 
-        In production this wires the model provider; tests mock this entirely.
+        This is the legacy adapter path, used only when no
+        :class:`aastf.benchmark.providers.AgentProvider` is configured. The
+        preferred way to run real models is to pass a provider implementing the
+        agent-factory contract to ``BenchmarkRunner(config, provider=...)``; the
+        key-free ``local`` provider needs no harness at all.
         """
         raise NotImplementedError(
-            "Direct benchmark execution requires a configured agent factory. "
-            "Use _run_single_scenario mock for testing."
+            "Direct benchmark execution requires either a configured AgentProvider "
+            "(pass provider= to BenchmarkRunner) or a wired agent factory. The "
+            "built-in 'local' provider runs key-free; see benchmarks/README.md."
         )
 
     def _compute_summary(self, entries: list[BenchmarkEntry]) -> BenchmarkSummary:

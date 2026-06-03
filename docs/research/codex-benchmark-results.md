@@ -1,10 +1,12 @@
 # AASTF x Codex CLI — Benchmark Results
 
-**Date:** 2026-04-15
+> **Illustrative/projected — not measured.** The numbers in this document are
+> estimates, not the output of a verified, reproducible benchmark run. Do not
+> cite them as empirical results.
+
 **Model:** gpt-5.4 (via OpenAI Codex CLI v0.118.0)
-**Framework:** AASTF v0.2.0
+**Framework:** see the [current release](https://pypi.org/project/aastf/)
 **Scenarios tested:** 15 (output-based detection subset)
-**Total built-in scenarios:** 50 (across all 10 OWASP ASI categories)
 
 ---
 

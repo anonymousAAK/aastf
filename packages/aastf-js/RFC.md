@@ -1,4 +1,4 @@
-# RFC: @aastf/core TypeScript SDK
+# RFC: asi-scan TypeScript SDK
 
 **Status:** Draft
 **Version:** 0.1.0-alpha.1
@@ -15,7 +15,7 @@ the JavaScript/TypeScript ecosystem has its own set of agentic frameworks —
 OpenAI Agents JS, LangChain.js, Mastra, and Vercel AI SDK — that lack equivalent
 security testing tooling.
 
-`@aastf/core` brings the same scenario-driven adversarial testing to the JS/TS
+`asi-scan` brings the same scenario-driven adversarial testing to the JS/TS
 ecosystem, reusing the Python sandbox server and 100+ attack scenarios.
 
 ## 2. API Surface
@@ -56,7 +56,7 @@ Parses scenario definitions from JSON (or pre-parsed YAML objects) into typed
 `AttackScenario` instances with validation.
 
 ```typescript
-import { loadScenario, loadScenarioFile } from "@aastf/core";
+import { loadScenario, loadScenarioFile } from "asi-scan";
 
 const scenario = loadScenario(parsedYamlObject);
 const scenario2 = await loadScenarioFile("./scenarios/ASI01-001.json");
@@ -71,7 +71,7 @@ Formats `ScanReport` objects into three output formats:
 - **SARIF:** Static Analysis Results Interchange Format v2.1.0 for GitHub Code Scanning
 
 ```typescript
-import { formatConsole, formatJSON, formatSARIF } from "@aastf/core";
+import { formatConsole, formatJSON, formatSARIF } from "asi-scan";
 
 console.log(formatConsole(report));
 fs.writeFileSync("report.json", formatJSON(report));
@@ -80,7 +80,7 @@ const sarif = formatSARIF(report);  // -> SARIFLog object
 
 ## 3. Adapter Pattern
 
-Adapters bridge between `@aastf/core` and specific JS agent frameworks. Each
+Adapters bridge between `asi-scan` and specific JS agent frameworks. Each
 adapter implements the `AgentAdapter` interface (planned for alpha.2):
 
 ```typescript
@@ -101,7 +101,7 @@ interface AgentAdapter {
 | Mastra | `@aastf/adapter-mastra` | P1 — growing agentic framework |
 | OpenAI Agents JS | `@aastf/adapter-openai-agents` | P1 — official OpenAI SDK |
 
-Adapters will be published as separate packages with `@aastf/core` as a peer
+Adapters will be published as separate packages with `asi-scan` as a peer
 dependency to keep the core lightweight.
 
 ## 4. Compatibility with Python Sandbox
@@ -111,7 +111,7 @@ The TypeScript SDK operates as a **client** to the existing Python sandbox serve
 ```
   JS Test Runner                    Python Sandbox
   ┌─────────────┐     HTTP/JSON     ┌──────────────┐
-  │ @aastf/core │ ───────────────> │ SandboxServer │
+  │ asi-scan │ ───────────────> │ SandboxServer │
   │  + adapter  │ <─────────────── │  (FastAPI)    │
   └─────────────┘                   └──────────────┘
 ```
@@ -128,7 +128,7 @@ The TypeScript SDK operates as a **client** to the existing Python sandbox serve
 ```bash
 # Start the Python sandbox server (from the aastf Python package)
 pip install aastf
-python -m aastf.sandbox.server --port 9100
+aastf serve --port 9100
 
 # Or via Docker
 docker run -p 9100:9100 ghcr.io/anonymousaak/aastf-sandbox:latest
@@ -148,7 +148,7 @@ docker run -p 9100:9100 ghcr.io/anonymousaak/aastf-sandbox:latest
 
 - Follows semver. Pre-1.0 allows breaking changes in minor versions.
 - Alpha releases are tagged on npm with `@alpha` dist-tag.
-- The `@aastf/core` package version is independent of the Python `aastf` version.
+- The `asi-scan` package version is independent of the Python `aastf` version.
 
 ### Breaking Change Policy (Pre-GA)
 
@@ -158,7 +158,7 @@ docker run -p 9100:9100 ghcr.io/anonymousaak/aastf-sandbox:latest
 
 ## 6. Open Questions
 
-1. **YAML parsing:** Should `@aastf/core` bundle a YAML parser (e.g. `yaml` package)
+1. **YAML parsing:** Should `asi-scan` bundle a YAML parser (e.g. `yaml` package)
    or keep it as an optional peer dependency? Current decision: keep it out, accept
    pre-parsed objects.
 

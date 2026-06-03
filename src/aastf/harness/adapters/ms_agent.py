@@ -50,7 +50,7 @@ class MSAgentHarness:
         collector = TraceCollector(scenario_id=scenario.id, adapter="ms_agent")
 
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 tools = self._create_sandbox_tools(scenario)
                 agent = self._factory(tools)
 
@@ -68,6 +68,9 @@ class MSAgentHarness:
                 collector.set_final_output(output)
 
                 for tc in tool_calls:
+                    # See google_adk: count each tool call as one iteration so
+                    # ASI08 loop/cascade detection has a lower-bound signal.
+                    collector.increment_iteration()
                     collector.record_invocation(ToolInvocation(
                         tool_name=tc.get("name", "unknown"),
                         inputs=tc.get("arguments", {}),
@@ -75,6 +78,10 @@ class MSAgentHarness:
                         sandbox_intercepted=True,
                     ))
 
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
 

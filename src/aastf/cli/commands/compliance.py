@@ -145,11 +145,13 @@ def evidence_pack(
     """
     report = _load_report(report_path)
 
-    # Parse article numbers
-    article_ints: list[int] | None = None
+    # Parse article numbers. The evidence-pack builder keys article weights and
+    # output directories by string ("9", "12", ...), so validate that each value
+    # is integer-like but pass the strings through unchanged.
+    article_ids: list[str] | None = None
     if articles:
         try:
-            article_ints = [int(a) for a in articles]
+            article_ids = [str(int(a)) for a in articles]
         except ValueError:
             console.print("[red]--articles values must be integers (e.g. 9, 12, 15)[/red]")
             raise typer.Exit(1) from None
@@ -179,7 +181,7 @@ def evidence_pack(
 
         with tempfile.TemporaryDirectory(prefix="aastf-pack-") as tmpdir:
             tmp_zip = Path(tmpdir) / "pack.zip"
-            builder.build(report, tmp_zip, articles=article_ints)
+            builder.build(report, tmp_zip, articles=article_ids)
 
             # Add additional framework reports into the extracted directory
             dir_path.mkdir(parents=True, exist_ok=True)
@@ -195,7 +197,7 @@ def evidence_pack(
 
         console.print(f"[green]Evidence pack extracted to directory:[/green] {dir_path}")
     elif format == "zip":
-        result_path = builder.build(report, output_path, articles=article_ints)
+        result_path = builder.build(report, output_path, articles=article_ids)
 
         # Add additional framework reports into the ZIP
         if "singapore-imda" in frameworks or "nist-ai-rmf" in frameworks:

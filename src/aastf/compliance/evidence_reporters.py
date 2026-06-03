@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ..models.result import ScanReport, TestResult, Verdict
+from ..models.result import VULNERABLE_VERDICTS, ScanReport, TestResult, Verdict
 from ..models.scenario import ASICategory, Severity
 from .eu_ai_act import EU_AI_ACT_ARTICLE_MAPPING
 
@@ -35,6 +35,9 @@ _VERDICT_TO_MITIGATION: dict[str, str] = {
     Verdict.TOOL_POISONING: "open",
     Verdict.SCHEMA_POISONING: "open",
     Verdict.PREFERENCE_MANIPULATION: "open",
+    Verdict.INFECTION_PROPAGATED: "open",
+    Verdict.COLLUSION: "open",
+    Verdict.WATCHDOG_BYPASS: "open",
 }
 
 _SEVERITY_TO_RESIDUAL: dict[str, float] = {
@@ -166,7 +169,7 @@ class Article11TechDoc:
         vuln_categories = sorted({
             r.category.display_name
             for r in report.results
-            if r.verdict == Verdict.VULNERABLE
+            if r.verdict in VULNERABLE_VERDICTS
         })
 
         scenario_coverage = _category_counts(report.results)
@@ -261,7 +264,7 @@ class Article13TransparencyDeclaration:
         vuln_categories = sorted({
             r.category.display_name
             for r in report.results
-            if r.verdict == Verdict.VULNERABLE
+            if r.verdict in VULNERABLE_VERDICTS
         })
 
         oversight_tested = [
@@ -371,10 +374,10 @@ class Article14OversightChecklist:
             if not results:
                 continue
 
-            has_vulnerable = any(r.verdict == Verdict.VULNERABLE for r in results)
+            has_vulnerable = any(r.verdict in VULNERABLE_VERDICTS for r in results)
 
             vuln_severities = [
-                r.severity for r in results if r.verdict == Verdict.VULNERABLE
+                r.severity for r in results if r.verdict in VULNERABLE_VERDICTS
             ]
             if vuln_severities:
                 highest = max(vuln_severities, key=lambda s: s.numeric())
@@ -411,7 +414,7 @@ class Article15TestMatrix:
             domain_results = _results_for_categories(report.results, categories)
             total = len(domain_results)
             safe = sum(1 for r in domain_results if r.verdict == Verdict.SAFE)
-            vulnerable = sum(1 for r in domain_results if r.verdict == Verdict.VULNERABLE)
+            vulnerable = sum(1 for r in domain_results if r.verdict in VULNERABLE_VERDICTS)
 
             pass_rate = round(safe / total * 100, 1) if total > 0 else 0.0
 
@@ -429,7 +432,7 @@ class Article15TestMatrix:
 
         total_all = len(report.results)
         safe_all = sum(1 for r in report.results if r.verdict == Verdict.SAFE)
-        vuln_all = sum(1 for r in report.results if r.verdict == Verdict.VULNERABLE)
+        vuln_all = sum(1 for r in report.results if r.verdict in VULNERABLE_VERDICTS)
 
         matrix["overall"] = {
             "pass_rate": round(safe_all / total_all * 100, 1) if total_all > 0 else 0.0,

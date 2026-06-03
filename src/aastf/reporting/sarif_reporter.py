@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..models.result import ScanReport, Verdict, VulnerabilityFinding
+from ..models.result import ACTIONABLE_VERDICTS, ScanReport, Verdict, VulnerabilityFinding
 from ..models.scenario import Severity
 
 _SARIF_VERSION = "2.1.0"
@@ -48,14 +48,13 @@ class SARIFReporter:
     def generate(self, report: ScanReport) -> dict:
         """Return SARIF document as a Python dict.
 
-        VULNERABLE and REFUSAL_ECHO findings are both emitted.  SAFE findings
-        are omitted (not actionable).  SARIF-consuming tools that don't know
-        AASTF see standard error/warning levels; AASTF-aware tools can filter
-        on the aastf.verdict extension property.
+        All behavioural-compromise verdicts (VULNERABLE plus the MCP/multi-agent
+        verdicts) and REFUSAL_ECHO are emitted.  SAFE findings are omitted (not
+        actionable).  SARIF-consuming tools that don't know AASTF see standard
+        error/warning levels; AASTF-aware tools can filter on the aastf.verdict
+        extension property.
         """
-        actionable = [
-            f for f in report.findings if f.verdict in (Verdict.VULNERABLE, Verdict.REFUSAL_ECHO)
-        ]
+        actionable = [f for f in report.findings if f.verdict in ACTIONABLE_VERDICTS]
         return {
             "version": _SARIF_VERSION,
             "$schema": _SARIF_SCHEMA,
