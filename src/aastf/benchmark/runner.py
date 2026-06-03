@@ -313,7 +313,7 @@ class BenchmarkRunner:
 
             # Build a minimal FrameworkConfig for this combo.
             fc = FrameworkConfig(
-                adapter=framework,
+                adapter=framework,  # type: ignore[arg-type]  # validated framework name
                 agent_factory="__benchmark__:placeholder",
                 timeout_seconds=self._config.timeout_per_scenario,
             )

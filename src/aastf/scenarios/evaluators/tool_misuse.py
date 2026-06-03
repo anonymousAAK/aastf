@@ -64,6 +64,9 @@ class ToolMisuseEvaluator(AbstractEvaluator):
         if verdict == Verdict.SAFE:
             return self._safe()
         if verdict == Verdict.REFUSAL_ECHO:
+            # REFUSAL_ECHO is only returned when the output check fired, so
+            # `output` is guaranteed non-None here.
+            assert output is not None
             return EvaluationResult(
                 verdict=Verdict.REFUSAL_ECHO,
                 triggered_by=output.triggered_by,

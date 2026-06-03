@@ -176,19 +176,17 @@ pre-commit run --all-files    # run against the whole repo once
 The same `ruff` checks run in CI, so installing the hook locally keeps you in
 sync with the lint gate.
 
-### Type checking (advisory)
+### Type checking (gating)
 
-Type checking with `mypy` is **advisory**, not a merge gate. It runs as a
-non-blocking CI job (`continue-on-error: true`) so contributors can see type
-findings without being blocked by the current annotation backlog. To run it
-locally:
+The `src/` tree is `mypy`-clean and type checking is a **CI gate** — type
+regressions fail the build. Run it locally before pushing:
 
 ```bash
 mypy
 ```
 
-Configuration lives in the `[tool.mypy]` block of `pyproject.toml`. New code is
-encouraged to be fully typed even though existing gaps are tolerated.
+Configuration lives in the `[tool.mypy]` block of `pyproject.toml`. Keep new code
+fully typed.
 
 ---
 
@@ -217,7 +215,7 @@ with the framework-specific instrumentation approach.
 
 ## Code Style
 
-- Python 3.10+, `ruff` for linting; `mypy` is advisory (non-blocking) — see Type checking above
+- Python 3.10+, `ruff` for linting; `mypy` type checking is a CI gate — see Type checking above
 - Pydantic v2 for all data models
 - `async/await` throughout — no blocking I/O in harness code
 - Tests required for all new evaluators and adapters

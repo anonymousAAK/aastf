@@ -47,11 +47,10 @@ jobs:
       - run: pip install -e ".[dev,langgraph]"
       - run: pytest tests/unit/ -v --tb=short
 
-  # Advisory type checking — non-blocking. mypy findings are surfaced for
-  # visibility but do not gate merges while annotations are still landing.
+  # Type checking — gating. The src tree is mypy-clean (with the langgraph
+  # extra installed), so type regressions now fail CI.
   mypy:
     runs-on: ubuntu-latest
-    continue-on-error: true
     permissions:
       contents: read
     steps:
