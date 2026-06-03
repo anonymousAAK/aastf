@@ -1,13 +1,15 @@
 # AASTF — Agentic AI Security Testing Framework
 
-> **84.30% of production AI agents can be hijacked by adversarial input.**
-> AASTF is the first tool that tests the *agent system* — not just the model.
+> **Up to 84.30% of agent tasks were successfully attacked in published benchmarks
+> ([Agent Security Bench, Zhang et al., ICLR 2025](https://arxiv.org/abs/2410.02644)).**
+> AASTF tests the *agent system* — the LLM plus its tools, memory, and planning
+> loop — not just the model in isolation.
 
 [![CI](https://github.com/anonymousAAK/aastf/actions/workflows/ci.yml/badge.svg)](https://github.com/anonymousAAK/aastf/actions)
 [![PyPI](https://img.shields.io/pypi/v/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
 [![Downloads](https://img.shields.io/pypi/dm/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
 [![Tests](https://img.shields.io/badge/tests-2800%20passed-brightgreen)](TESTING.md)
-[![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20296480.svg)](https://doi.org/10.5281/zenodo.20296480)
 [![OWASP ASI](https://img.shields.io/badge/OWASP-ASI%20Top%2010-red)](https://genai.owasp.org)
@@ -292,23 +294,22 @@ Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
 
 ## Test Results
 
-**1002 tests · 0 failures · 0 warnings · lint clean**
+**2801 tests collected · 2800 passed · 2 skipped · lint clean** (measured via
+`pytest tests/ --collect-only -q` and a full `pytest` run; the numbers above are
+verified by `tests/adversarial/test_h_docs.py`, which fails CI if this README
+drifts from the actual collected count).
 
-| Suite | Tests | What it covers |
-|-------|-------|---------------|
-| `test_adapters` | 7 | LangGraph, CrewAI, OpenAI Agents, PydanticAI, Generic adapters |
-| `test_collector` | 16 | TraceCollector + LangGraph `astream_events` v2 ingestion |
-| `test_evaluators` | 67 | All 10 ASI evaluators — VULNERABLE, REFUSAL_ECHO, and SAFE verdicts |
-| `test_html_reporter` | 23 | HTML compliance report rendering, REFUSAL_ECHO panels |
-| `test_loader` | 13 | YAML scenario loading, validation, Jinja2 rendering |
-| `test_models_*` | 40 | Pydantic schema validation, serialization, round-trips |
-| `test_pydantic_ai_adapter` | 3 | PydanticAI harness |
-| `test_registry` | 15 | Scenario registry filter, get, load |
-| `test_runner` | 30 | Scan orchestration, SARIF/JSON reporters, REFUSAL_ECHO accumulation, strict-output flag |
-| `test_scoring` | 24 | CVSS scoring, EU AI Act readiness, REFUSAL_ECHO 35% discount |
-| `test_scoring_hypothesis` | 7 | Property-based: score always in [0,100], REFUSAL_ECHO <= VULNERABLE |
-| `test_trend_tracker` | 16 | SQLite trend DB record, retrieve, compare, trend direction |
-| `test_scenario_coverage` | 18 | Self-audit: 65 scenarios structurally valid, >= 5/category |
+Representative coverage by area:
+
+| Area | What it covers |
+|------|---------------|
+| Adapters | LangGraph, CrewAI, OpenAI Agents, PydanticAI, n8n, Flowise, Generic harnesses |
+| Evaluators | All 10 ASI evaluators — VULNERABLE, REFUSAL_ECHO, and SAFE verdicts |
+| Scoring | CVSS-adapted scoring (cumulative, monotonic risk), EU AI Act readiness, REFUSAL_ECHO 35% discount |
+| Reporting | SARIF/JSON/HTML reporters, REFUSAL_ECHO panels, evidence packs |
+| Scenarios | YAML loading, Jinja2 rendering, registry filtering, self-audit structural validation |
+| Property-based | Hypothesis: risk score always in [0,100] and monotonic, REFUSAL_ECHO <= VULNERABLE |
+| Adversarial | Correctness, schema fuzzing, bypass, runtime, supply-chain, and docs-truthfulness suites |
 
 Full test list: [TESTING.md](TESTING.md)
 
@@ -340,6 +341,6 @@ pytest tests/unit/
 
 MIT. See [LICENSE](LICENSE).
 
-*84.30% of production AI agents can be hijacked. AASTF exists because that number needs to go to zero.*
+*Published benchmarks report agent attack-success rates as high as 84.30% ([Agent Security Bench](https://arxiv.org/abs/2410.02644)). AASTF exists because that number needs to go to zero.*
 
 [owasp-asi]: https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/

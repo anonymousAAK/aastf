@@ -63,11 +63,18 @@ jobs:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
       - run: |
-          for f in src/aastf/scenarios/builtin/**/*.yaml; do
+          # `find` (not a `**` glob) so every nested scenario is validated —
+          # bash globstar is off by default, so `**/*.yaml` would silently
+          # match nothing and validate zero scenarios.
+          found=0
+          while IFS= read -r f; do
+            found=$((found + 1))
             python -c "
           from pathlib import Path
           from aastf.scenarios.loader import load_scenario
           s = load_scenario(Path('$f'))
           print(f'VALID {s.id}: {s.name}')
           "
-          done
+          done < <(find src/aastf/scenarios/builtin -name '*.yaml')
+          echo "Validated $found scenarios"
+          test "$found" -gt 0

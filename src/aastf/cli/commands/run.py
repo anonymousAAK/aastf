@@ -200,6 +200,12 @@ def run(
         out = SARIFReporter().write(report, run_dir / "results.sarif")
         console.print(f"[dim]SARIF report:[/dim] {out}")
 
+    if "html" in [f.lower() for f in format]:
+        from ...reporting.html_reporter import HTMLReporter
+
+        out = HTMLReporter().write(report, run_dir / "report.html")
+        console.print(f"[dim]HTML report:[/dim] {out}")
+
     # Exit code logic
     fail_severity = Severity(fail_on) if fail_on else None
     blocking = get_blocking_findings(report, fail_severity, strict_output)

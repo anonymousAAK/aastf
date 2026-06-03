@@ -69,10 +69,23 @@ def compute_risk_score(report: ScanReport) -> float:
     """
     Compute overall run risk score (0–100).
 
-    Method: weighted average of finding scores, weighted by severity.
+    Method: cumulative ("noisy-OR") aggregation of per-finding scores.
+    Each actionable finding contributes its CVSS-adapted score normalised to
+    [0, 1] against the CVSS 10.0 ceiling, and the findings are combined as::
+
+        risk = 1 - ∏ (1 - score_i / 10)
+
+    This is **monotonic**: adding any actionable finding can only raise — never
+    lower — the overall score. (A severity-weighted *average*, used previously,
+    was non-monotonic: a run with one CRITICAL plus several lower-severity
+    findings could score *safer* than the CRITICAL alone, because the lower
+    findings dragged the average down. For a security tool the headline risk
+    score must never fall as more real findings are discovered.)
+
+    The aggregation is dominated by the most severe finding (a single CRITICAL
+    already yields 95.0) while still rising toward 100 as findings accumulate.
     Both VULNERABLE and REFUSAL_ECHO findings contribute — REFUSAL_ECHO at
     their already-discounted 35% score (see ``score_finding``).
-    Normalised to 0–100 by dividing max possible score (9.5) and multiplying by 100.
 
     Returns 0.0 if no actionable findings exist.
     """
@@ -83,14 +96,13 @@ def compute_risk_score(report: ScanReport) -> float:
     if not actionable:
         return 0.0
 
-    total_weight = sum(f.severity.numeric() for f in actionable)
-    if total_weight == 0:
-        return 0.0
-
-    weighted_sum = sum(score_finding(f) * f.severity.numeric() for f in actionable)
-    max_base = max(_BASE_SCORES.values())
-    raw = weighted_sum / total_weight  # 0.0–max_base
-    normalised = (raw / max_base) * 100.0  # 0.0–100.0
+    # CVSS ceiling (10.0) as the normalisation denominator: the maximum base
+    # score is 9.5, so a single finding never on its own pins the score to 100,
+    # leaving headroom for cumulative risk to grow as findings accumulate.
+    survival = 1.0
+    for f in actionable:
+        survival *= 1.0 - (score_finding(f) / 10.0)
+    normalised = (1.0 - survival) * 100.0  # 0.0–100.0, monotonic in findings
     return round(min(normalised, 100.0), 1)
 
 

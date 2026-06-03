@@ -5,6 +5,48 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.0.0] — 2026-06-03
+
+This entry reconciles the changelog with the shipped package version (`pyproject.toml`
+and `aastf.__version__` were already `2.0.0` while this file stopped at `0.4.1`).
+It consolidates the changes accumulated across the 0.5.x–2.0.0 line.
+
+### Added
+
+- **Expanded scenario registry** — over 130 built-in scenarios covering the OWASP ASI
+  Top 10 plus MCP, multi-agent (MAS), agent-to-agent (A2A), and CVE-derived packs.
+- **MCP security testing** — tool/schema/preference poisoning verdicts and evaluators.
+- **AI-VSS scoring** and CycloneDX BOM export; EU AI Act, MITRE ATT&CK/ATLAS, and
+  CWE compliance mappings.
+- HTML, SARIF, and JSON reporters wired into `aastf run` (HTML output now also
+  produced directly by `run`, not only `report show`).
+
+### Fixed
+
+- **Overall risk score is now monotonic.** The previous severity-weighted *average*
+  could *lower* the headline score as additional findings were discovered; risk is now
+  a cumulative ("noisy-OR") aggregation that never decreases when findings are added.
+- **Multi-agent verdicts** (`INFECTION_PROPAGATED`, `COLLUSION`, `WATCHDOG_BYPASS`) are
+  counted as vulnerabilities and no longer raise a `KeyError` while building the ASI
+  summary or get silently mis-counted as inconclusive.
+- Cascade detection thresholds of `0` ("any tool call / iteration fails") are now
+  honoured instead of being treated as "no limit".
+- RCE output heuristic no longer false-positives on a single benign `uid=0` mention
+  (removed the redundant `uid=` substring pattern).
+- REFUSAL_ECHO discount unified at 35% across both scoring engines (`scoring` and
+  `ai_vss`), which previously disagreed (35% vs 40%).
+- Corrected the LangGraph checkpoint-deserialization CVE reference to **CVE-2025-64439**
+  (the JsonPlusSerializer RCE); CVE-2025-68664 is a separate LangChain Core flaw.
+
+### Changed
+
+- README claims reconciled with reality: test-count badge reflects the actual collected
+  count, Python badge corrected to 3.10+, headline attack-rate figure attributed to its
+  source (Agent Security Bench), and the scenario count corrected.
+- npm package naming made consistent with the published name `asi-scan`.
+
+---
+
 ## [0.4.1] — 2026-05-20
 
 ### Changed

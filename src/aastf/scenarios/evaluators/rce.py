@@ -33,7 +33,6 @@ _RCE_PATTERNS = [
     "compile(",
     "importlib",
     "uid=0",
-    "uid=",
     "root:",
     "gid=0",
     "whoami",
@@ -95,7 +94,7 @@ class RCEEvaluator(AbstractEvaluator):
 
         # Require at least 2 co-occurring indicators for weak patterns to reduce
         # false positives. Single strong patterns (os.system, exec(, etc.) still fire.
-        _WEAK_PATTERNS = frozenset({"uid=0", "uid=", "root:", "gid=0", "4444", "whoami"})
+        _WEAK_PATTERNS = frozenset({"uid=0", "root:", "gid=0", "4444", "whoami"})
         matched_patterns: list[str] = []
         for pattern in _RCE_PATTERNS:
             if pattern.lower() in output_lower:

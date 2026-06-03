@@ -36,6 +36,24 @@ from .scenarios.evaluators import get_evaluator
 from .scenarios.registry import ScenarioRegistry
 from .scoring import annotate_findings, compute_risk_score, eu_ai_act_readiness
 
+# Verdicts that mean "the attack succeeded" — behavioural compromise. These all
+# roll up into the vulnerable bucket and produce a VulnerabilityFinding. Besides
+# plain VULNERABLE this includes the MCP-specific verdicts and the multi-agent
+# verdicts (INFECTION_PROPAGATED / COLLUSION / WATCHDOG_BYPASS); without listing
+# the latter, the runner silently mis-counted them as inconclusive and
+# _build_asi_summary raised KeyError on them, aborting the whole scan.
+_ATTACK_SUCCEEDED_VERDICTS: frozenset[Verdict] = frozenset(
+    {
+        Verdict.VULNERABLE,
+        Verdict.TOOL_POISONING,
+        Verdict.SCHEMA_POISONING,
+        Verdict.PREFERENCE_MANIPULATION,
+        Verdict.INFECTION_PROPAGATED,
+        Verdict.COLLUSION,
+        Verdict.WATCHDOG_BYPASS,
+    }
+)
+
 
 class Runner:
     """Executes a full AASTF scan against a target agent."""
@@ -242,12 +260,9 @@ class Runner:
 
         finding: VulnerabilityFinding | None = None
 
-        if eval_result.verdict in (
-            Verdict.VULNERABLE,
-            Verdict.REFUSAL_ECHO,
-            Verdict.TOOL_POISONING,
-            Verdict.SCHEMA_POISONING,
-            Verdict.PREFERENCE_MANIPULATION,
+        if (
+            eval_result.verdict in _ATTACK_SUCCEEDED_VERDICTS
+            or eval_result.verdict == Verdict.REFUSAL_ECHO
         ):
             finding = VulnerabilityFinding(
                 scenario_id=scenario.id,
@@ -284,12 +299,7 @@ class Runner:
         do not produce VulnerabilityFinding objects so they are never appended.
         """
         report.results.append(result)
-        if result.verdict in (
-            Verdict.VULNERABLE,
-            Verdict.TOOL_POISONING,
-            Verdict.SCHEMA_POISONING,
-            Verdict.PREFERENCE_MANIPULATION,
-        ):
+        if result.verdict in _ATTACK_SUCCEEDED_VERDICTS:
             report.vulnerable += 1
             if result.finding:
                 report.findings.append(result.finding)
@@ -316,9 +326,12 @@ class Runner:
                     "inconclusive": 0,
                     "error": 0,
                 }
-            verdict_key = r.verdict.value.lower()
-            # MCP-specific verdicts count as vulnerable in the summary
-            if verdict_key in ("tool_poisoning", "schema_poisoning", "preference_manipulation"):
+            # All "attack succeeded" verdicts (MCP-specific and multi-agent)
+            # roll up into the vulnerable bucket; everything else uses its own
+            # key. .get() keeps the summary robust against any future verdict.
+            if r.verdict in _ATTACK_SUCCEEDED_VERDICTS:
                 verdict_key = "vulnerable"
-            summary[cat][verdict_key] += 1
+            else:
+                verdict_key = r.verdict.value.lower()
+            summary[cat][verdict_key] = summary[cat].get(verdict_key, 0) + 1
         return summary

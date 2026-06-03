@@ -1,4 +1,4 @@
-name: Publish @aastf/core to npm
+name: Publish asi-scan to npm
 
 on:
   push:

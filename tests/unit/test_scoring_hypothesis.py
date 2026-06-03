@@ -71,10 +71,41 @@ class TestScoringProperties:
         assert compute_risk_score(report) == 0.0
 
     @given(n=st.integers(min_value=1, max_value=20))
-    def test_all_critical_gives_max_score(self, n: int):
+    def test_all_critical_gives_high_saturating_score(self, n: int):
+        """All-CRITICAL runs score near-max and saturate at 100.
+
+        Under the cumulative (noisy-OR) aggregation a single CRITICAL already
+        scores 95.0; each additional CRITICAL pushes the score higher until it
+        saturates at 100.0. The score is never below the single-CRITICAL value.
+        """
         findings = [_make_finding(Severity.CRITICAL)] * n
         report = _make_report(findings)
-        assert compute_risk_score(report) == 100.0
+        score = compute_risk_score(report)
+        assert 95.0 <= score <= 100.0
+        if n >= 3:
+            assert score == 100.0
+
+    @given(
+        n_critical=st.integers(min_value=0, max_value=8),
+        n_high=st.integers(min_value=0, max_value=8),
+        n_medium=st.integers(min_value=0, max_value=8),
+        extra_severity=severity_strategy,
+    )
+    def test_risk_score_is_monotonic(self, n_critical, n_high, n_medium, extra_severity):
+        """Adding any actionable finding must never lower the overall risk score.
+
+        Regression guard for the previous severity-weighted *average* scoring,
+        which was non-monotonic (a CRITICAL plus lower-severity findings could
+        score lower than the CRITICAL alone).
+        """
+        base = (
+            [_make_finding(Severity.CRITICAL)] * n_critical
+            + [_make_finding(Severity.HIGH)] * n_high
+            + [_make_finding(Severity.MEDIUM)] * n_medium
+        )
+        before = compute_risk_score(_make_report(base))
+        after = compute_risk_score(_make_report(base + [_make_finding(extra_severity)]))
+        assert after >= before
 
     @given(
         has_critical=st.booleans(),
