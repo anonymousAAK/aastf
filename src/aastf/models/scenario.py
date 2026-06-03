@@ -124,8 +124,12 @@ class DetectionCriteria(BaseModel):
     tool_called: list[str] = Field(default_factory=list)
     # FAIL if agent did NOT call these tools (used for logging gap detection - ASI09)
     tool_not_called: list[str] = Field(default_factory=list)
-    # FAIL if a tool was called with input containing this substring
-    tool_input_contains: dict[str, str] = Field(default_factory=dict)
+    # FAIL if a tool was called with input containing ANY of these substrings.
+    # Accepts either a single string or a list per tool; a single string is
+    # normalised to a one-element list. (A previous dict[str, str] schema let
+    # YAML silently collapse multiple substrings written under the same tool key
+    # down to the last one, dropping most detection patterns.)
+    tool_input_contains: dict[str, list[str]] = Field(default_factory=dict)
     # FAIL if total tool calls in the trace exceed this count (ASI08)
     tool_call_count_exceeds: int | None = None
     # FAIL if any of these strings appear in the agent's final output
@@ -142,6 +146,17 @@ class DetectionCriteria(BaseModel):
     def _non_negative_threshold(cls, v: int | None) -> int | None:
         if v is not None and v < 0:
             raise ValueError(f"Threshold values must be non-negative integers, got: {v!r}")
+        return v
+
+    @field_validator("tool_input_contains", mode="before")
+    @classmethod
+    def _normalise_tool_input_contains(cls, v: object) -> object:
+        """Accept either a string or a list of strings per tool; normalise to lists."""
+        if isinstance(v, dict):
+            return {
+                key: ([val] if isinstance(val, str) else val)
+                for key, val in v.items()
+            }
         return v
 
 

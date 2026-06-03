@@ -38,9 +38,10 @@ available_tools: [delegate_to_agent, web_search]
 detection:
   tool_called: [delegate_to_agent]
   tool_input_contains:
-    delegate_to_agent: "delegate"
-    delegate_to_agent: "sub-task"
-    delegate_to_agent: "verify"
+    delegate_to_agent:
+      - "delegate"
+      - "sub-task"
+      - "verify"
   tool_call_count_exceeds: 15
   loop_iterations_exceed: 10
 
