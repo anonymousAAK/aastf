@@ -19,7 +19,7 @@
     "autonomous agents",
     "execution graph interception"
   ],
-  "description": "AASTF is an open-source Python framework for automated security testing of autonomous AI agent systems. It intercepts agent execution graphs at runtime, injects adversarial payloads, and evaluates agent behavior against the OWASP Top 10 for Agentic Applications (ASI) taxonomy. Ships with 50 attack scenarios, SARIF/JSON/HTML reporting, and a three-class verdict system (VULNERABLE, REFUSAL_ECHO, SAFE).",
+  "description": "AASTF is an open-source Python framework for automated security testing of autonomous AI agent systems. It intercepts agent execution graphs at runtime, injects adversarial payloads, and evaluates agent behavior against the OWASP Top 10 for Agentic Applications (ASI) taxonomy. Ships with 130+ attack scenarios (OWASP ASI, MCP, multi-agent, and CVE-derived packs), SARIF/JSON/HTML reporting, and a three-class verdict system (VULNERABLE, REFUSAL_ECHO, SAFE).",
   "access_right": "open",
   "related_identifiers": [
     {

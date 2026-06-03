@@ -124,11 +124,13 @@ def run(
     """Execute a security scan against an agent system."""
     from ...models.config import FrameworkConfig
 
-    # Validate paths do not escape cwd (path traversal prevention)
+    # Validate paths do not escape cwd (path traversal prevention).
+    # Use is_relative_to, not string startswith: a plain prefix check would let a
+    # sibling like "/work/project-evil" pass the guard for cwd "/work/project".
     cwd = Path.cwd().resolve()
     for label, raw in [("output_dir", output_dir), *[("scenario_dir", s) for s in scenario_dir]]:
         resolved = Path(raw).resolve()
-        if not str(resolved).startswith(str(cwd)):
+        if not resolved.is_relative_to(cwd):
             console.print(
                 f"[bold red]Path error:[/bold red] --{label.replace('_', '-')} {raw!r} "
                 f"resolves to {resolved}, which is outside the working directory {cwd}"

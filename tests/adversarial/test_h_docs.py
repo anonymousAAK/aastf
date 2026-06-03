@@ -29,12 +29,26 @@ README = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 class TestScenarioCounts:
     """H1, H3: Scenario count claims."""
 
-    def test_readme_claims_100_plus_scenarios(self):
-        """Hypothesis: README says '100+ built-in attack scenarios'."""
-        assert "100+" in README and "scenario" in README.lower()
+    def test_readme_scenario_count_claim_is_a_true_lower_bound(self):
+        """The README's '<N>+ built-in ... scenarios' claim must not be overstated.
+
+        Verifies the claimed lower bound is at least 100 and does not exceed the
+        actual number of built-in scenarios in the registry.
+        """
+        import re
+
+        from aastf.scenarios.registry import ScenarioRegistry
+
+        actual = len(ScenarioRegistry().load_builtin())
+        match = re.search(r"(\d+)\+\s+built-in", README)
+        assert match, "README should state a '<N>+ built-in ... scenarios' count"
+        claimed = int(match.group(1))
+        assert 100 <= claimed <= actual, (
+            f"README claims {claimed}+ scenarios but the registry has {actual}"
+        )
 
     def test_actual_scenario_count_at_least_65(self):
-        """Hypothesis: The actual loader returns at least 65 scenarios (50 base + 15 MCP)."""
+        """The loader returns at least 65 scenarios (ASI Top 10 plus MCP/MAS/A2A/CVE packs)."""
         from aastf.scenarios.registry import ScenarioRegistry
         registry = ScenarioRegistry().load_builtin()
         assert len(registry) >= 65, f"Expected >= 65 scenarios, got {len(registry)}"

@@ -15,13 +15,11 @@ export GOOGLE_API_KEY="..."
 export TOGETHER_API_KEY="..."
 export MISTRAL_API_KEY="..."
 
-# 3. Run the benchmark
-aastf benchmark --config benchmarks/benchmark-8x4.yaml
+# 3. Run the benchmark (models/frameworks/scenarios are defined in the config)
+aastf benchmark run --config benchmarks/benchmark-8x4.yaml
 
-# 4. Run a subset (single model, single framework)
-aastf benchmark --config benchmarks/benchmark-8x4.yaml \
-  --model gpt-4o-mini \
-  --framework langgraph
+# To run a subset, copy the config and trim its `models:` / `frameworks:` lists,
+# then point `run` at the trimmed file.
 ```
 
 ## Required Environment Variables
@@ -114,7 +112,7 @@ Create your own benchmark config by copying and modifying `benchmark-8x4.yaml`:
 ```bash
 cp benchmarks/benchmark-8x4.yaml benchmarks/my-benchmark.yaml
 # Edit models, frameworks, scenario_packs, etc.
-aastf benchmark --config benchmarks/my-benchmark.yaml
+aastf benchmark run --config benchmarks/my-benchmark.yaml
 ```
 
 To benchmark a single model against a single framework for quick iteration:
@@ -144,7 +142,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install "aastf[langgraph,crewai,openai_agents,pydantic_ai]"
-      - run: aastf benchmark --config benchmarks/benchmark-8x4.yaml
+      - run: aastf benchmark run --config benchmarks/benchmark-8x4.yaml
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

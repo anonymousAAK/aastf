@@ -81,7 +81,7 @@ pip install "aastf[langgraph]"
 ```
 
 ```bash
-# Scan your agent against all 100+ built-in OWASP ASI scenarios
+# Scan your agent against all 130+ built-in OWASP ASI scenarios
 aastf run myapp.agent:create_agent --adapter langgraph
 
 # Target specific categories
@@ -108,7 +108,7 @@ def create_agent(tools: list):
 
 ## What AASTF Tests
 
-100+ built-in attack scenarios mapped to the [OWASP Top 10 for Agentic Applications (December 2025)][owasp-asi]:
+130+ built-in attack scenarios mapped to the [OWASP Top 10 for Agentic Applications (December 2025)][owasp-asi]:
 
 | Code | Threat | Example Attack |
 |------|--------|---------------|
@@ -130,7 +130,7 @@ def create_agent(tools: list):
 ```
 Your Agent                     AASTF
 -----------                    ------
-                               1. Loads 100+ attack scenarios
+                               1. Loads 130+ attack scenarios
                                2. Starts sandbox server (real HTTP, no side effects)
 graph.astream_events() ------> 3. Instruments execution via LangGraph callback bus
   on_tool_start               4. Injects adversarial payload at configured point
@@ -186,7 +186,7 @@ Findings appear natively in your repository's **Security** tab.
 ```bash
 aastf run <agent_module>                    # Full scan
 aastf run . --dry-run                       # Preview scenarios
-aastf scenario list                         # Browse all 100+ scenarios
+aastf scenario list                         # Browse all 130+ scenarios
 aastf scenario list --category ASI02 --severity CRITICAL
 aastf scenario validate ./my-scenario.yaml  # Validate before adding
 aastf scenario show ASI02-001               # Full scenario details
@@ -250,7 +250,7 @@ Additionally, 8 real-world CVE-derived scenarios and system prompt extraction + 
 Run MCP-specific scans:
 
 ```bash
-aastf run --adapter mcp --agent-factory your_agent:factory
+aastf run your_agent:factory --adapter mcp
 ```
 
 ---
@@ -276,7 +276,7 @@ They signal output sanitization obligations under Article 15, not Article 9 risk
 Layer 5: Platform   [Public Benchmark + Enterprise Cloud — coming]
 Layer 4: Reporting   JSON . SARIF . HTML . Compliance
 Layer 3: Sandbox     FastAPI Mock Backend . Real HTTP Calls
-Layer 2: Scenarios   YAML Registry . 100+ OWASP ASI Attack Scenarios
+Layer 2: Scenarios   YAML Registry . 130+ OWASP ASI Attack Scenarios
 Layer 1: Harness     OTEL . Callback Bus . Tool-Call Interception
            LangGraph    OpenAI Agents    CrewAI    PydanticAI
 ```
