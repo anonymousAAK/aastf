@@ -97,7 +97,7 @@ Start the server before running tests:
 
 ```bash
 pip install aastf
-python -m aastf.sandbox.server --port 9100
+aastf serve --port 9100
 ```
 
 ## Compatibility

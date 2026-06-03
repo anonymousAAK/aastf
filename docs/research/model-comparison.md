@@ -224,6 +224,4 @@ against OWASP ASI Top 10. GitHub. https://github.com/anonymousAAK/aastf
 
 **Full results:**
 - [gpt-5.4 detailed results](./codex-benchmark-results.md)
-- [model-b-sonnet detailed results](./model-b-benchmark-results.md)
 - [Reproduction script](../../examples/test_codex_agent.py)
-- [Model B reproduction script](../../examples/test_model_b_agent.py)

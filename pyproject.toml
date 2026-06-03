@@ -40,7 +40,7 @@ Issues = "https://github.com/anonymousAAK/aastf/issues"
 
 [project.optional-dependencies]
 langgraph = ["langgraph>=1.0", "langchain-core>=0.3"]
-openai-agents = ["openai>=1.30"]
+openai-agents = ["openai-agents>=0.1"]
 crewai = ["crewai>=0.28"]
 pydantic-ai = ["pydantic-ai>=0.0.13"]
 google-adk = ["google-adk>=0.1"]
