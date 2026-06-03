@@ -10,7 +10,12 @@ import typer
 from rich.console import Console
 
 from ...models.config import FrameworkConfig
-from ...models.result import ScanReport, Verdict, VulnerabilityFinding
+from ...models.result import (
+    VULNERABLE_VERDICTS,
+    ScanReport,
+    Verdict,
+    VulnerabilityFinding,
+)
 from ...models.scenario import Severity
 
 app = typer.Typer()
@@ -39,7 +44,8 @@ def get_blocking_findings(
         for f in report.findings
         if f.severity >= fail_severity
         and (
-            f.verdict == Verdict.VULNERABLE or (strict_output and f.verdict == Verdict.REFUSAL_ECHO)
+            f.verdict in VULNERABLE_VERDICTS
+            or (strict_output and f.verdict == Verdict.REFUSAL_ECHO)
         )
     ]
 

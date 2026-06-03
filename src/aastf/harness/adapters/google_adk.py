@@ -50,7 +50,7 @@ class GoogleADKHarness:
         collector = TraceCollector(scenario_id=scenario.id, adapter="google_adk")
 
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 tools = self._create_sandbox_tools(scenario)
                 agent = self._factory(tools)
 
@@ -75,6 +75,10 @@ class GoogleADKHarness:
                         sandbox_intercepted=True,
                     ))
 
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
 

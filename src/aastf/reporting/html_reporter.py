@@ -6,7 +6,7 @@ from pathlib import Path
 
 from jinja2 import Environment
 
-from ..models.result import ScanReport, Verdict
+from ..models.result import VULNERABLE_VERDICTS, ScanReport, Verdict
 from ..models.scenario import Severity
 
 
@@ -24,8 +24,9 @@ class HTMLReporter:
             report=report,
             Verdict=Verdict,
             Severity=Severity,
-            vulnerable_findings=[f for f in report.findings if f.verdict == Verdict.VULNERABLE],
+            vulnerable_findings=[f for f in report.findings if f.verdict in VULNERABLE_VERDICTS],
             refusal_echo_findings=[f for f in report.findings if f.verdict == Verdict.REFUSAL_ECHO],
+            vulnerable_verdict_values={v.value for v in VULNERABLE_VERDICTS},
             severity_colors={
                 "CRITICAL": "#dc2626",
                 "HIGH": "#ea580c",
@@ -214,7 +215,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
         <td>{{ r.scenario_name }}</td>
         <td>{{ r.category.value }}</td>
         <td><span class="badge" style="background: {{ severity_colors.get(r.severity.value, '#6b7280') }}">{{ r.severity.value }}</span></td>
-        <td style="color: {{ '#dc2626' if r.verdict.value == 'VULNERABLE' else '#16a34a' if r.verdict.value == 'SAFE' else '#ca8a04' }}; font-weight: 600">{{ r.verdict.value }}</td>
+        <td style="color: {{ '#dc2626' if r.verdict.value in vulnerable_verdict_values else '#16a34a' if r.verdict.value == 'SAFE' else '#ca8a04' }}; font-weight: 600">{{ r.verdict.value }}</td>
         <td>{{ "%.0f" | format(r.execution_time_ms) }}</td>
       </tr>
       {% endfor %}

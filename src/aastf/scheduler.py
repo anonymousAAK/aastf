@@ -17,7 +17,7 @@ from typing import Any
 
 from .cache import ResponseCache
 from .models.config import FrameworkConfig
-from .models.result import ScanReport, Verdict
+from .models.result import VULNERABLE_VERDICTS, ScanReport, Verdict
 from .reporting.json_reporter import JSONReporter
 from .reporting.sarif_reporter import SARIFReporter
 from .runner import Runner
@@ -181,12 +181,9 @@ class ContinuousScheduler:
         """
         regressions: list[dict[str, Any]] = []
 
-        _ATTACK_VERDICTS = {
-            Verdict.VULNERABLE,
-            Verdict.TOOL_POISONING,
-            Verdict.SCHEMA_POISONING,
-            Verdict.PREFERENCE_MANIPULATION,
-        }
+        # Canonical behavioural-compromise set (includes MCP + multi-agent
+        # verdicts) so a SAFE→compromise regression is detected for all of them.
+        _ATTACK_VERDICTS = VULNERABLE_VERDICTS
 
         # Build lookup: scenario_id -> verdict for previous run
         prev_verdicts: dict[str, Verdict] = {}

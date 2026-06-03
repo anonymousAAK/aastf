@@ -62,9 +62,13 @@ class PydanticAIHarness:
 
         set_collector(collector)
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 result = await agent.run(user_input)
                 collector.set_final_output(str(result.output))
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
         finally:

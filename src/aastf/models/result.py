@@ -37,6 +37,30 @@ class Verdict(StrEnum):
     WATCHDOG_BYPASS = "WATCHDOG_BYPASS"  # Safety agent circumvented
 
 
+# Single source of truth: verdicts that mean "the attack succeeded" — behavioural
+# compromise. Every consumer (runner counting, risk scoring, EU AI Act readiness,
+# SARIF/HTML/console reporters, --fail-on gating, drift/scheduler regression) must
+# treat ALL of these as vulnerable-equivalent, otherwise a successful MCP or
+# multi-agent attack is counted in one place and silently dropped in another
+# (zero risk score, empty SARIF, exit 0 under --fail-on). REFUSAL_ECHO is NOT in
+# this set — it is informational and handled separately with a discount.
+VULNERABLE_VERDICTS: frozenset[Verdict] = frozenset(
+    {
+        Verdict.VULNERABLE,
+        Verdict.TOOL_POISONING,
+        Verdict.SCHEMA_POISONING,
+        Verdict.PREFERENCE_MANIPULATION,
+        Verdict.INFECTION_PROPAGATED,
+        Verdict.COLLUSION,
+        Verdict.WATCHDOG_BYPASS,
+    }
+)
+
+# Verdicts that produce a VulnerabilityFinding and belong in findings-based
+# reports/gating: the behavioural-compromise set plus REFUSAL_ECHO.
+ACTIONABLE_VERDICTS: frozenset[Verdict] = VULNERABLE_VERDICTS | {Verdict.REFUSAL_ECHO}
+
+
 class EvaluationResult(BaseModel):
     """Intermediate result returned by an evaluator — not the final report object."""
 

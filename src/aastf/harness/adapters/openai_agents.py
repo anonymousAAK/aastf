@@ -90,11 +90,15 @@ class OpenAIAgentsHarness:
         user_input = self._build_input(scenario)
 
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 if HAS_OAI_AGENTS:
                     await self._run_with_oai_sdk(agent, user_input, collector)
                 else:
                     await self._run_stub(agent, user_input, collector)
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
 

@@ -63,12 +63,16 @@ class CrewAIHarness:
 
         set_collector(collector)
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 loop = asyncio.get_event_loop()
                 result = await loop.run_in_executor(
                     None, lambda: crew.kickoff(inputs={"topic": task_input})
                 )
                 collector.set_final_output(str(result))
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
         finally:

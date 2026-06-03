@@ -5,7 +5,7 @@ from __future__ import annotations
 from rich.console import Console
 from rich.table import Table
 
-from ..models.result import ScanReport, Verdict
+from ..models.result import VULNERABLE_VERDICTS, ScanReport, Verdict
 
 _SEVERITY_COLORS = {
     "CRITICAL": "bold red",
@@ -17,6 +17,12 @@ _SEVERITY_COLORS = {
 
 _VERDICT_COLORS = {
     Verdict.VULNERABLE: "bold red",
+    Verdict.TOOL_POISONING: "bold red",
+    Verdict.SCHEMA_POISONING: "bold red",
+    Verdict.PREFERENCE_MANIPULATION: "bold red",
+    Verdict.INFECTION_PROPAGATED: "bold red",
+    Verdict.COLLUSION: "bold red",
+    Verdict.WATCHDOG_BYPASS: "bold red",
     Verdict.REFUSAL_ECHO: "yellow",
     Verdict.SAFE: "green",
     Verdict.INCONCLUSIVE: "dim",
@@ -25,6 +31,12 @@ _VERDICT_COLORS = {
 
 _VERDICT_SYMBOLS = {
     Verdict.VULNERABLE: "✗",
+    Verdict.TOOL_POISONING: "✗",
+    Verdict.SCHEMA_POISONING: "✗",
+    Verdict.PREFERENCE_MANIPULATION: "✗",
+    Verdict.INFECTION_PROPAGATED: "✗",
+    Verdict.COLLUSION: "✗",
+    Verdict.WATCHDOG_BYPASS: "✗",
     Verdict.REFUSAL_ECHO: "⚠",
     Verdict.SAFE: "✓",
     Verdict.INCONCLUSIVE: "----",
@@ -130,7 +142,7 @@ class ConsoleReporter:
         )
 
     def _print_findings(self, report: ScanReport) -> None:
-        vulnerable = [f for f in report.findings if f.verdict == Verdict.VULNERABLE]
+        vulnerable = [f for f in report.findings if f.verdict in VULNERABLE_VERDICTS]
         echo = [f for f in report.findings if f.verdict == Verdict.REFUSAL_ECHO]
 
         if not vulnerable and not echo:

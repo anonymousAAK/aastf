@@ -23,6 +23,7 @@ from .cache import ResponseCache
 from .exceptions import AdapterNotFoundError
 from .models.config import FrameworkConfig
 from .models.result import (
+    VULNERABLE_VERDICTS,
     EvaluationResult,
     ScanReport,
     TestResult,
@@ -35,24 +36,6 @@ from .sandbox.server import SandboxServer
 from .scenarios.evaluators import get_evaluator
 from .scenarios.registry import ScenarioRegistry
 from .scoring import annotate_findings, compute_risk_score, eu_ai_act_readiness
-
-# Verdicts that mean "the attack succeeded" — behavioural compromise. These all
-# roll up into the vulnerable bucket and produce a VulnerabilityFinding. Besides
-# plain VULNERABLE this includes the MCP-specific verdicts and the multi-agent
-# verdicts (INFECTION_PROPAGATED / COLLUSION / WATCHDOG_BYPASS); without listing
-# the latter, the runner silently mis-counted them as inconclusive and
-# _build_asi_summary raised KeyError on them, aborting the whole scan.
-_ATTACK_SUCCEEDED_VERDICTS: frozenset[Verdict] = frozenset(
-    {
-        Verdict.VULNERABLE,
-        Verdict.TOOL_POISONING,
-        Verdict.SCHEMA_POISONING,
-        Verdict.PREFERENCE_MANIPULATION,
-        Verdict.INFECTION_PROPAGATED,
-        Verdict.COLLUSION,
-        Verdict.WATCHDOG_BYPASS,
-    }
-)
 
 
 class Runner:
@@ -227,6 +210,21 @@ class Runner:
         self, scenario: AttackScenario, trace: AgentTrace, t0: datetime,
     ) -> TestResult:
         """Evaluate a trace against scenario detection criteria."""
+        # A trace that carries an error (e.g. the agent timed out or the adapter
+        # recorded a failure without raising) must NOT be scored against detection
+        # criteria — an empty/partial trace would otherwise evaluate to SAFE and
+        # silently mask the failure as a passing result.
+        if trace.error:
+            return TestResult(
+                scenario_id=scenario.id,
+                scenario_name=scenario.name,
+                category=scenario.category,
+                severity=scenario.severity,
+                verdict=Verdict.ERROR,
+                trace=trace,
+                execution_time_ms=(datetime.now(timezone.utc) - t0).total_seconds() * 1000,
+            )
+
         evaluator = get_evaluator(scenario.category)
         if evaluator is None:
             logging.getLogger(__name__).warning(
@@ -261,7 +259,7 @@ class Runner:
         finding: VulnerabilityFinding | None = None
 
         if (
-            eval_result.verdict in _ATTACK_SUCCEEDED_VERDICTS
+            eval_result.verdict in VULNERABLE_VERDICTS
             or eval_result.verdict == Verdict.REFUSAL_ECHO
         ):
             finding = VulnerabilityFinding(
@@ -299,7 +297,7 @@ class Runner:
         do not produce VulnerabilityFinding objects so they are never appended.
         """
         report.results.append(result)
-        if result.verdict in _ATTACK_SUCCEEDED_VERDICTS:
+        if result.verdict in VULNERABLE_VERDICTS:
             report.vulnerable += 1
             if result.finding:
                 report.findings.append(result.finding)
@@ -329,7 +327,7 @@ class Runner:
             # All "attack succeeded" verdicts (MCP-specific and multi-agent)
             # roll up into the vulnerable bucket; everything else uses its own
             # key. .get() keeps the summary robust against any future verdict.
-            if r.verdict in _ATTACK_SUCCEEDED_VERDICTS:
+            if r.verdict in VULNERABLE_VERDICTS:
                 verdict_key = "vulnerable"
             else:
                 verdict_key = r.verdict.value.lower()

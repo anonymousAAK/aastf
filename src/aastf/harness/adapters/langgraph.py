@@ -172,7 +172,7 @@ class LangGraphHarness:
         }
 
         try:
-            with anyio.move_on_after(self._timeout):
+            with anyio.move_on_after(self._timeout) as _timeout_scope:
                 # Primary: astream_events v2 gives full parent_id chains
                 # needed for delegation graph analysis (ASI03, ASI07)
                 async for event in graph.astream_events(
@@ -182,6 +182,10 @@ class LangGraphHarness:
                 ):
                     collector.ingest_stream_event(event)
 
+            if _timeout_scope.cancelled_caught:
+                collector.set_error(
+                    f"Agent execution exceeded the {self._timeout:.0f}s timeout"
+                )
         except Exception as e:
             collector.set_error(str(e))
 
