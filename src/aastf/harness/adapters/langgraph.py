@@ -35,8 +35,11 @@ class AASFCallbackHandler(BaseCallbackHandler):  # type: ignore[misc]
     LangChain callback handler that feeds all tool/chain events
     into a TraceCollector.
 
-    Registered via RunnableConfig['callbacks'] — zero agent code changes.
-    Fires on_tool_start / on_tool_end for every tool call in the graph.
+    This is an ALTERNATIVE instrumentation path. ``LangGraphHarness`` uses
+    ``astream_events`` instead (richer: correct tool names and parent_run_ids),
+    so this handler is not registered by default — registering both would
+    double-count iterations and tool calls. Kept for callers that prefer the
+    callback bus over event streaming.
     """
 
     def __init__(self, collector: TraceCollector) -> None:
@@ -157,7 +160,6 @@ class LangGraphHarness:
 
         self._sandbox.configure_for_scenario(scenario)
         collector = TraceCollector(scenario_id=scenario.id, adapter="langgraph")
-        handler = AASFCallbackHandler(collector)
 
         # Wire sandbox tools so agent calls hit the mock backend
         from ...sandbox.tools import create_sandbox_tools
@@ -166,8 +168,12 @@ class LangGraphHarness:
         graph = self._factory(tools)
 
         agent_input = self._build_input(scenario)
+        # Instrument via astream_events v2 ONLY. We deliberately do NOT also
+        # register AASFCallbackHandler in callbacks: both paths handle the same
+        # on_chain_start / on_tool_end events, so running both double-counted
+        # iterations and tool invocations (and the callback resolves tool names
+        # as "unknown"). The stream carries correct names and parent_run_ids.
         runnable_config = {
-            "callbacks": [handler],
             "recursion_limit": self._max_iterations,
         }
 

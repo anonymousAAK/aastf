@@ -93,6 +93,9 @@ class MCPHarness:
 
                     # Record tool calls
                     for tc in tool_calls:
+                        # See google_adk: count each tool call as one iteration so
+                        # ASI08 loop/cascade detection has a lower-bound signal.
+                        collector.increment_iteration()
                         collector.record_invocation(ToolInvocation(
                             tool_name=tc.get("name", "unknown"),
                             inputs=tc.get("arguments", {}),

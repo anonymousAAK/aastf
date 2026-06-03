@@ -68,6 +68,11 @@ class GoogleADKHarness:
                 collector.set_final_output(output)
 
                 for tc in tool_calls:
+                    # This adapter receives a flat (output, tool_calls) result
+                    # with no planning-loop hook; count each tool call as one
+                    # iteration so ASI08 loop/cascade detection has a lower-bound
+                    # signal instead of a constant 0 (which never fires).
+                    collector.increment_iteration()
                     collector.record_invocation(ToolInvocation(
                         tool_name=tc.get("name", "unknown"),
                         inputs=tc.get("arguments", {}),
