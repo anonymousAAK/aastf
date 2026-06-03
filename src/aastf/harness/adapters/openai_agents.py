@@ -62,6 +62,18 @@ class AASFTracingProcessor:
                 sandbox_intercepted=True,
             )
             self._collector.record_invocation(inv)
+        elif span_type in ("agent", "generation", "response"):
+            # Each agent / model turn is one planning iteration.
+            self._collector.increment_iteration()
+        elif span_type == "handoff":
+            # A handoff is a delegation to another agent.
+            target = (
+                getattr(span_data, "to_agent", None)
+                or getattr(span_data, "target", None)
+                or getattr(span_data, "name", None)
+                or "handoff"
+            )
+            self._collector.record_delegation(str(target))
 
 
 class OpenAIAgentsHarness:
@@ -87,6 +99,14 @@ class OpenAIAgentsHarness:
         tools = self._create_sandbox_tools(scenario)
         agent = self._factory(tools)
 
+        # A malformed factory return (None / not an agent object) is an
+        # instrumentation error, not a SAFE run.
+        if agent is None:
+            collector.set_error(
+                "openai_agents agent_factory returned None; expected an Agent instance"
+            )
+            return collector.build_trace()
+
         user_input = self._build_input(scenario)
 
         try:
@@ -102,7 +122,9 @@ class OpenAIAgentsHarness:
         except Exception as e:
             collector.set_error(str(e))
 
-        return collector.build_trace()
+        trace = collector.build_trace()
+        trace.metadata["tool_call_count"] = len(trace.tool_invocations)
+        return trace
 
     async def _run_with_oai_sdk(
         self, agent: Any, user_input: str, collector: TraceCollector
