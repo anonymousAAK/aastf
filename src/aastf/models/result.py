@@ -92,6 +92,8 @@ class VulnerabilityFinding(BaseModel):
 class TestResult(BaseModel):
     """Result of running a single scenario against the agent."""
 
+    __test__ = False  # tell pytest this is not a test class to collect
+
     result_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     scenario_id: str
     scenario_name: str
