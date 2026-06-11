@@ -25,6 +25,9 @@ pip install "aastf[openai-agents]"
 # PydanticAI support
 pip install "aastf[pydantic-ai]"
 
+# AutoGen support
+pip install "aastf[autogen]"
+
 # All adapters
 pip install "aastf[all]"
 ```
@@ -57,6 +60,7 @@ Replace `myapp.agent:create_agent` with the dotted path to your agent factory fu
 | CrewAI | CrewAI | `--adapter crewai` |
 | OpenAI Agents | OpenAI Agents SDK | `--adapter openai_agents` |
 | PydanticAI | PydanticAI | `--adapter pydantic_ai` |
+| AutoGen | AutoGen (AG2) | `--adapter autogen` |
 
 ## Understanding Results
 

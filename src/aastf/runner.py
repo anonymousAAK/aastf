@@ -165,10 +165,14 @@ class Runner:
             from .harness.adapters.ms_agent import MSAgentHarness
 
             return MSAgentHarness(factory, sandbox, timeout=self._config.timeout_seconds)
+        elif adapter == "autogen":
+            from .harness.adapters.autogen import AutoGenHarness
+
+            return AutoGenHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         raise AdapterNotFoundError(
             f"Unknown adapter: {adapter!r}. "
             "Supported: langgraph, crewai, openai_agents, pydantic_ai, generic, "
-            "mcp, google_adk, ms_agent"
+            "mcp, google_adk, ms_agent, autogen"
         )
 
     async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:
