@@ -12,6 +12,7 @@ aastf-results/
 *.sarif
 *.db
 .env
+.commandcode/
 .hypothesis/
 .aastf/
 outreach/
