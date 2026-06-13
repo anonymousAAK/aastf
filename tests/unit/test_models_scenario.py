@@ -143,6 +143,14 @@ class TestDetectionCriteria:
         assert "send_email" in d.tool_called
         assert "delete_file" in d.tool_called
 
-    def test_tool_input_contains_dict(self):
+    def test_tool_input_contains_single_string_normalised_to_list(self):
+        # A single string is normalised to a one-element list.
         d = DetectionCriteria(tool_input_contains={"send_email": "attacker@evil.com"})
-        assert d.tool_input_contains["send_email"] == "attacker@evil.com"
+        assert d.tool_input_contains["send_email"] == ["attacker@evil.com"]
+
+    def test_tool_input_contains_accepts_list_of_patterns(self):
+        # Multiple substrings per tool are preserved (no silent collapse).
+        d = DetectionCriteria(
+            tool_input_contains={"read_file": ["../", "/etc/passwd", "..\\..\\windows"]}
+        )
+        assert d.tool_input_contains["read_file"] == ["../", "/etc/passwd", "..\\..\\windows"]

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import signal
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -10,7 +12,12 @@ import typer
 from rich.console import Console
 
 from ...models.config import FrameworkConfig
-from ...models.result import ScanReport, Verdict, VulnerabilityFinding
+from ...models.result import (
+    VULNERABLE_VERDICTS,
+    ScanReport,
+    Verdict,
+    VulnerabilityFinding,
+)
 from ...models.scenario import Severity
 
 app = typer.Typer()
@@ -39,7 +46,8 @@ def get_blocking_findings(
         for f in report.findings
         if f.severity >= fail_severity
         and (
-            f.verdict == Verdict.VULNERABLE or (strict_output and f.verdict == Verdict.REFUSAL_ECHO)
+            f.verdict in VULNERABLE_VERDICTS
+            or (strict_output and f.verdict == Verdict.REFUSAL_ECHO)
         )
     ]
 
@@ -118,11 +126,13 @@ def run(
     """Execute a security scan against an agent system."""
     from ...models.config import FrameworkConfig
 
-    # Validate paths do not escape cwd (path traversal prevention)
+    # Validate paths do not escape cwd (path traversal prevention).
+    # Use is_relative_to, not string startswith: a plain prefix check would let a
+    # sibling like "/work/project-evil" pass the guard for cwd "/work/project".
     cwd = Path.cwd().resolve()
     for label, raw in [("output_dir", output_dir), *[("scenario_dir", s) for s in scenario_dir]]:
         resolved = Path(raw).resolve()
-        if not str(resolved).startswith(str(cwd)):
+        if not resolved.is_relative_to(cwd):
             console.print(
                 f"[bold red]Path error:[/bold red] --{label.replace('_', '-')} {raw!r} "
                 f"resolves to {resolved}, which is outside the working directory {cwd}"
@@ -182,7 +192,39 @@ def run(
         cleared = cache.clear()
         console.print(f"[dim]Cleared {cleared} cached response(s)[/dim]")
 
-    report = asyncio.run(_execute(config, cache))
+    # Signal handling for graceful cancellation
+    _interrupted = False
+    from typing import Any as _Any
+
+    def _handle_signal(signum: int, frame: _Any) -> None:
+        nonlocal _interrupted
+        if _interrupted:
+            console.print("\n[bold red]Force quit.[/bold red]")
+            sys.exit(3)
+        _interrupted = True
+        console.print(
+            "\n[yellow]Interrupt received — finishing current scenario "
+            "and writing partial report...[/yellow]"
+        )
+
+    original_sigint = signal.getsignal(signal.SIGINT)
+    signal.signal(signal.SIGINT, _handle_signal)
+    if hasattr(signal, "SIGTERM"):
+        original_sigterm = signal.getsignal(signal.SIGTERM)
+        signal.signal(signal.SIGTERM, _handle_signal)
+
+    try:
+        report = asyncio.run(_execute(config, cache))
+    except KeyboardInterrupt:
+        console.print("\n[dim]Scan interrupted.[/dim]")
+        raise typer.Exit(3) from None
+    except Exception as exc:
+        console.print(f"[bold red]Runtime error:[/bold red] {exc}")
+        raise typer.Exit(3) from None
+    finally:
+        signal.signal(signal.SIGINT, original_sigint)
+        if hasattr(signal, "SIGTERM"):
+            signal.signal(signal.SIGTERM, original_sigterm)  # type: ignore[possibly-undefined]
 
     # Write reports
     run_dir = Path(output_dir) / f"run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -200,7 +242,13 @@ def run(
         out = SARIFReporter().write(report, run_dir / "results.sarif")
         console.print(f"[dim]SARIF report:[/dim] {out}")
 
-    # Exit code logic
+    if "html" in [f.lower() for f in format]:
+        from ...reporting.html_reporter import HTMLReporter
+
+        out = HTMLReporter().write(report, run_dir / "report.html")
+        console.print(f"[dim]HTML report:[/dim] {out}")
+
+    # Exit code: 0=success, 1=vulnerabilities found, 2=config error, 3=runtime error
     fail_severity = Severity(fail_on) if fail_on else None
     blocking = get_blocking_findings(report, fail_severity, strict_output)
     if blocking:

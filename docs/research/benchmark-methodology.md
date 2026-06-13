@@ -1,9 +1,11 @@
 # AASTF Benchmark Methodology
 
+> **Note:** Any specific result figures referenced from this methodology are
+> **illustrative/projected — not measured** unless explicitly stated otherwise.
+
 **Document version:** 1.0
-**Date:** April 2026
-**Framework version:** aastf==0.1.0
-**Status:** Stable — used for benchmark-results-v1
+**Framework version:** see the [current release](https://pypi.org/project/aastf/)
+**Status:** Draft methodology
 
 ---
 
@@ -97,9 +99,9 @@ OS: Ubuntu 22.04 LTS (benchmark runs)
 
 ```bash
 # Reproduce the exact environment used for v1 results
-git clone https://github.com/your-org/aastf
+git clone https://github.com/anonymousAAK/aastf
 cd aastf
-git checkout v0.1.0-benchmark
+git checkout <benchmark-tag>   # see repo releases
 pip install pip-tools
 pip-sync benchmark-lockfile-v1.txt
 ```
@@ -508,9 +510,9 @@ This benchmark explicitly does **not** measure the following:
 
 ```bash
 # 1. Clone and check out the benchmark tag
-git clone https://github.com/your-org/aastf
+git clone https://github.com/anonymousAAK/aastf
 cd aastf
-git checkout v0.1.0-benchmark
+git checkout <benchmark-tag>   # see repo releases
 
 # 2. Install pinned dependencies
 pip install pip-tools
@@ -601,5 +603,5 @@ At April 2026 pricing:
 
 ---
 
-*This document is part of the AASTF v0.1.0 research release. For questions or
-reproduction issues, open an issue at github.com/your-org/aastf.*
+*This document is part of the AASTF research materials. For questions or
+reproduction issues, open an issue at github.com/anonymousAAK/aastf.*

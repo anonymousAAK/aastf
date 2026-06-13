@@ -1,13 +1,13 @@
-# @aastf/core
+# asi-scan
 
 TypeScript SDK for the **Agentic AI Security Testing Framework** (AASTF).
 
-> **Status:** Alpha. API may change before 1.0.
+> **Status:** Alpha. API may still change between minor versions.
 
 ## Install
 
 ```bash
-npm install @aastf/core
+npm install asi-scan
 ```
 
 Requires Node.js >= 18.
@@ -22,8 +22,8 @@ import {
   Verdict,
   Severity,
   ASICategory,
-} from "@aastf/core";
-import type { ScanReport, AttackScenario } from "@aastf/core";
+} from "asi-scan";
+import type { ScanReport, AttackScenario } from "asi-scan";
 
 // 1. Connect to the Python sandbox server
 const client = new SandboxClient("http://127.0.0.1:9100");
@@ -77,7 +77,7 @@ console.log(formatConsole(report));
 ## Output Formats
 
 ```typescript
-import { formatConsole, formatJSON, formatSARIF } from "@aastf/core";
+import { formatConsole, formatJSON, formatSARIF } from "asi-scan";
 
 // Human-readable text
 console.log(formatConsole(report));
@@ -97,7 +97,7 @@ Start the server before running tests:
 
 ```bash
 pip install aastf
-python -m aastf.sandbox.server --port 9100
+aastf serve --port 9100
 ```
 
 ## Compatibility

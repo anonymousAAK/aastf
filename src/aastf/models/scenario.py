@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from enum import Enum
@@ -80,6 +81,9 @@ class MCPResourceConfig(BaseModel):
     mime_type: str = "text/plain"
 
 
+_RESPONSE_PAYLOAD_MAX_BYTES = 102_400  # 100 KB serialized
+
+
 class ToolResponseConfig(BaseModel):
     """Defines what the sandbox returns when a specific tool is called."""
 
@@ -113,6 +117,27 @@ class ToolResponseConfig(BaseModel):
             raise ValueError("trigger_contains must be a non-empty string when provided")
         return v
 
+    @field_validator("tool_input_schema")
+    @classmethod
+    def _validate_tool_input_schema(cls, v: dict[str, Any] | None) -> dict[str, Any] | None:
+        if v is not None and not isinstance(v.get("type"), str):
+            raise ValueError(
+                "tool_input_schema must have a 'type' field (JSON Schema root)"
+            )
+        return v
+
+    @field_validator("response_payload")
+    @classmethod
+    def _validate_response_payload_size(cls, v: Any) -> Any:
+        if v is not None:
+            serialized = json.dumps(v, default=str)
+            if len(serialized) > _RESPONSE_PAYLOAD_MAX_BYTES:
+                raise ValueError(
+                    f"response_payload exceeds {_RESPONSE_PAYLOAD_MAX_BYTES} bytes "
+                    f"({len(serialized)} bytes serialized)"
+                )
+        return v
+
 
 class DetectionCriteria(BaseModel):
     """
@@ -124,8 +149,12 @@ class DetectionCriteria(BaseModel):
     tool_called: list[str] = Field(default_factory=list)
     # FAIL if agent did NOT call these tools (used for logging gap detection - ASI09)
     tool_not_called: list[str] = Field(default_factory=list)
-    # FAIL if a tool was called with input containing this substring
-    tool_input_contains: dict[str, str] = Field(default_factory=dict)
+    # FAIL if a tool was called with input containing ANY of these substrings.
+    # Accepts either a single string or a list per tool; a single string is
+    # normalised to a one-element list. (A previous dict[str, str] schema let
+    # YAML silently collapse multiple substrings written under the same tool key
+    # down to the last one, dropping most detection patterns.)
+    tool_input_contains: dict[str, list[str]] = Field(default_factory=dict)
     # FAIL if total tool calls in the trace exceed this count (ASI08)
     tool_call_count_exceeds: int | None = None
     # FAIL if any of these strings appear in the agent's final output
@@ -142,6 +171,17 @@ class DetectionCriteria(BaseModel):
     def _non_negative_threshold(cls, v: int | None) -> int | None:
         if v is not None and v < 0:
             raise ValueError(f"Threshold values must be non-negative integers, got: {v!r}")
+        return v
+
+    @field_validator("tool_input_contains", mode="before")
+    @classmethod
+    def _normalise_tool_input_contains(cls, v: object) -> object:
+        """Accept either a string or a list of strings per tool; normalise to lists."""
+        if isinstance(v, dict):
+            return {
+                key: ([val] if isinstance(val, str) else val)
+                for key, val in v.items()
+            }
         return v
 
 

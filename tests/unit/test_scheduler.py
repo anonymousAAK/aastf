@@ -567,7 +567,7 @@ class TestStartStop:
             )
 
             async def stop_after_delay():
-                await asyncio.sleep(2.5)
+                await asyncio.sleep(1.5)
                 await sched.stop()
 
             await asyncio.gather(

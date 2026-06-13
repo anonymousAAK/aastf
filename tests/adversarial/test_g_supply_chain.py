@@ -173,15 +173,31 @@ class TestNoHardcodedSecrets:
 class TestYAMLLoaderSafety:
     """G6: YAML loader uses safe_load."""
 
-    def test_loader_uses_safe_load(self):
-        """Hypothesis: loader.py contains yaml.safe_load, not yaml.load."""
-        loader_src = (REPO_ROOT / "src" / "aastf" / "scenarios" / "loader.py").read_text()
-        assert "yaml.safe_load" in loader_src
-        # Ensure the unsafe yaml.load is NOT present (without safe_load prefix)
-        # Allow yaml.safe_load but not bare yaml.load(
+    def test_loader_does_not_deserialize_arbitrary_objects(self):
+        """The loader must never construct arbitrary Python objects from YAML.
+
+        It uses ``yaml.load`` with a ``SafeLoader`` subclass (``_UniqueKeyLoader``,
+        which additionally rejects duplicate keys); verify both the static safety
+        (SafeLoader-derived, no bare ``yaml.load`` without an explicit Loader=) and
+        the behavioural safety (``!!python/object`` tags are rejected).
+        """
         import re
-        bare_load = re.findall(r'\byaml\.load\b(?!_)', loader_src)
-        assert not bare_load, f"Unsafe yaml.load found: {bare_load}"
+
+        import yaml
+
+        from aastf.scenarios.loader import _UniqueKeyLoader
+
+        assert issubclass(_UniqueKeyLoader, yaml.SafeLoader)
+
+        loader_src = (REPO_ROOT / "src" / "aastf" / "scenarios" / "loader.py").read_text()
+        for call_args in re.findall(r"yaml\.load\((.*?)\)", loader_src, re.S):
+            assert "Loader=" in call_args, "yaml.load must specify a safe Loader="
+
+        # Behavioural: a python/object tag must raise, not execute.
+        with pytest.raises(yaml.YAMLError):
+            yaml.load(
+                "!!python/object/apply:os.system ['echo pwned']", Loader=_UniqueKeyLoader
+            )
 
 
 # --------------------------------------------------------------------------- G7

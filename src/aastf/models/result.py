@@ -17,7 +17,7 @@ else:
             return self.value
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from .scenario import ASICategory, Severity
 from .trace import AgentTrace, ToolInvocation
@@ -37,6 +37,30 @@ class Verdict(StrEnum):
     WATCHDOG_BYPASS = "WATCHDOG_BYPASS"  # Safety agent circumvented
 
 
+# Single source of truth: verdicts that mean "the attack succeeded" — behavioural
+# compromise. Every consumer (runner counting, risk scoring, EU AI Act readiness,
+# SARIF/HTML/console reporters, --fail-on gating, drift/scheduler regression) must
+# treat ALL of these as vulnerable-equivalent, otherwise a successful MCP or
+# multi-agent attack is counted in one place and silently dropped in another
+# (zero risk score, empty SARIF, exit 0 under --fail-on). REFUSAL_ECHO is NOT in
+# this set — it is informational and handled separately with a discount.
+VULNERABLE_VERDICTS: frozenset[Verdict] = frozenset(
+    {
+        Verdict.VULNERABLE,
+        Verdict.TOOL_POISONING,
+        Verdict.SCHEMA_POISONING,
+        Verdict.PREFERENCE_MANIPULATION,
+        Verdict.INFECTION_PROPAGATED,
+        Verdict.COLLUSION,
+        Verdict.WATCHDOG_BYPASS,
+    }
+)
+
+# Verdicts that produce a VulnerabilityFinding and belong in findings-based
+# reports/gating: the behavioural-compromise set plus REFUSAL_ECHO.
+ACTIONABLE_VERDICTS: frozenset[Verdict] = VULNERABLE_VERDICTS | {Verdict.REFUSAL_ECHO}
+
+
 class EvaluationResult(BaseModel):
     """Intermediate result returned by an evaluator — not the final report object."""
 
@@ -46,12 +70,15 @@ class EvaluationResult(BaseModel):
     relevant_invocations: list[ToolInvocation] = Field(default_factory=list)
 
 
+_EVIDENCE_MAX_VALUE_BYTES = 10_240  # 10 KB per evidence value
+
+
 class VulnerabilityFinding(BaseModel):
     """A confirmed security finding — only created when verdict is VULNERABLE."""
 
     finding_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    scenario_id: str
-    scenario_name: str
+    scenario_id: str = Field(max_length=1000)
+    scenario_name: str = Field(max_length=1000)
     category: ASICategory
     severity: Severity
     verdict: Verdict
@@ -64,13 +91,22 @@ class VulnerabilityFinding(BaseModel):
     references: list[str] = Field(default_factory=list)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+    @field_validator("evidence")
+    @classmethod
+    def _limit_evidence_values(cls, v: dict[str, Any]) -> dict[str, Any]:
+        for key, val in v.items():
+            serialized = str(val)
+            if len(serialized) > _EVIDENCE_MAX_VALUE_BYTES:
+                v[key] = serialized[:_EVIDENCE_MAX_VALUE_BYTES] + "... (truncated)"
+        return v
+
 
 class TestResult(BaseModel):
     """Result of running a single scenario against the agent."""
 
     result_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    scenario_id: str
-    scenario_name: str
+    scenario_id: str = Field(max_length=1000)
+    scenario_name: str = Field(max_length=1000)
     category: ASICategory
     severity: Severity
     verdict: Verdict
@@ -98,6 +134,7 @@ class ScanReport(BaseModel):
     findings: list[VulnerabilityFinding] = Field(default_factory=list)
     # per-category breakdown: {"ASI01": {"vulnerable": 2, "safe": 3, ...}, ...}
     asi_summary: dict[str, dict[str, int]] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def vulnerability_rate(self) -> float:

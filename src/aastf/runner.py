@@ -12,8 +12,11 @@ Flow:
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import logging
+import traceback
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -23,6 +26,7 @@ from .cache import ResponseCache
 from .exceptions import AdapterNotFoundError
 from .models.config import FrameworkConfig
 from .models.result import (
+    VULNERABLE_VERDICTS,
     EvaluationResult,
     ScanReport,
     TestResult,
@@ -32,9 +36,12 @@ from .models.result import (
 from .models.scenario import ASICategory, AttackScenario
 from .models.trace import AgentTrace
 from .sandbox.server import SandboxServer
-from .scenarios.evaluators import get_evaluator
+from .scenarios.evaluators import get_evaluator_for
 from .scenarios.registry import ScenarioRegistry
 from .scoring import annotate_findings, compute_risk_score, eu_ai_act_readiness
+
+_GLOBAL_SCAN_TIMEOUT = 30 * 60  # 30 minutes
+_SCENARIO_TIMEOUT = 300  # 5 minutes per scenario
 
 
 class Runner:
@@ -44,14 +51,25 @@ class Runner:
         self,
         config: FrameworkConfig,
         cache: ResponseCache | None = None,
+        scan_timeout: float = _GLOBAL_SCAN_TIMEOUT,
     ) -> None:
         self._config = config
         self._cache = cache or ResponseCache(enabled=False)
+        self._scan_timeout = scan_timeout
+        self._post_scan_hooks: list[Callable[[ScanReport], Any]] = []
 
     # ------------------------------------------------------------------ public
 
+    def add_post_scan_hook(self, hook: Callable[[ScanReport], Any]) -> None:
+        """Register a callable to run after the scan completes."""
+        self._post_scan_hooks.append(hook)
+
     async def run(self) -> ScanReport:
         """Execute the scan and return a complete ScanReport."""
+        return await asyncio.wait_for(self._run_inner(), timeout=self._scan_timeout)
+
+    async def _run_inner(self) -> ScanReport:
+        """Core scan logic wrapped by the global timeout."""
         scenarios = self._load_scenarios()
         report = ScanReport(
             aastf_version=__version__,
@@ -72,7 +90,7 @@ class Runner:
 
         # Log cache performance
         if self._cache.enabled:
-            logging.getLogger(__name__).info(
+            logging.getLogger(__name__).debug(
                 "Cache: %d hits, %d misses", self._cache.hits, self._cache.misses,
             )
 
@@ -89,6 +107,15 @@ class Runner:
             TrendTracker().record(report)
         except Exception:
             logging.getLogger(__name__).warning("Trend tracking failed", exc_info=True)
+
+        # Run post-scan hooks
+        for hook in self._post_scan_hooks:
+            try:
+                hook(report)
+            except Exception:
+                logging.getLogger(__name__).warning(
+                    "Post-scan hook %s failed", hook, exc_info=True,
+                )
 
         return report
 
@@ -148,6 +175,10 @@ class Runner:
             from .harness.adapters.pydantic_ai import PydanticAIHarness
 
             return PydanticAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
+        elif adapter == "generic":
+            from .harness.adapters.generic import GenericHarness
+
+            return GenericHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         elif adapter == "mcp":
             from .harness.adapters.mcp import MCPHarness
 
@@ -162,7 +193,8 @@ class Runner:
             return MSAgentHarness(factory, sandbox, timeout=self._config.timeout_seconds)
         raise AdapterNotFoundError(
             f"Unknown adapter: {adapter!r}. "
-            "Supported: langgraph, crewai, openai_agents, pydantic_ai, mcp, google_adk, ms_agent"
+            "Supported: langgraph, crewai, openai_agents, pydantic_ai, generic, "
+            "mcp, google_adk, ms_agent"
         )
 
     async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:
@@ -171,20 +203,50 @@ class Runner:
         # Check cache first
         cached_trace = self._cache.get(scenario, self._config.adapter)
         if cached_trace is not None:
-            logging.getLogger(__name__).info(
+            logging.getLogger(__name__).debug(
                 "[cached] %s — using cached response", scenario.id,
             )
             trace = cached_trace
-            # Skip harness execution; jump straight to evaluation
             return self._evaluate(scenario, trace, t0)
 
         try:
-            trace = await harness.run_scenario(scenario)
+            trace = await asyncio.wait_for(
+                harness.run_scenario(scenario),
+                timeout=self._config.timeout_seconds or _SCENARIO_TIMEOUT,
+            )
+        except TimeoutError:
+            error_msg = (
+                f"Scenario {scenario.id} timed out after "
+                f"{self._config.timeout_seconds or _SCENARIO_TIMEOUT}s"
+            )
+            logging.getLogger(__name__).warning(
+                "%s (adapter=%s, category=%s)",
+                error_msg, self._config.adapter, scenario.category,
+            )
+            trace = AgentTrace(
+                scenario_id=scenario.id,
+                adapter=self._config.adapter,
+                error=error_msg,
+            )
+            return TestResult(
+                scenario_id=scenario.id,
+                scenario_name=scenario.name,
+                category=scenario.category,
+                severity=scenario.severity,
+                verdict=Verdict.ERROR,
+                trace=trace,
+                execution_time_ms=(datetime.now(timezone.utc) - t0).total_seconds() * 1000,
+            )
         except Exception as e:
+            tb = traceback.format_exc()
             error_msg = f"{type(e).__name__}: {e}"
-            # Truncate to avoid leaking full stack traces into reports
-            if len(error_msg) > 500:
-                error_msg = error_msg[:500] + "... (truncated)"
+            logging.getLogger(__name__).error(
+                "Scenario %s failed (adapter=%s, category=%s): %s\n%s",
+                scenario.id, self._config.adapter, scenario.category, error_msg, tb,
+            )
+            # Truncate for the report but log full traceback above
+            if len(error_msg) > 2000:
+                error_msg = error_msg[:2000] + "... (truncated)"
             trace = AgentTrace(
                 scenario_id=scenario.id,
                 adapter=self._config.adapter,
@@ -209,7 +271,22 @@ class Runner:
         self, scenario: AttackScenario, trace: AgentTrace, t0: datetime,
     ) -> TestResult:
         """Evaluate a trace against scenario detection criteria."""
-        evaluator = get_evaluator(scenario.category)
+        # A trace that carries an error (e.g. the agent timed out or the adapter
+        # recorded a failure without raising) must NOT be scored against detection
+        # criteria — an empty/partial trace would otherwise evaluate to SAFE and
+        # silently mask the failure as a passing result.
+        if trace.error:
+            return TestResult(
+                scenario_id=scenario.id,
+                scenario_name=scenario.name,
+                category=scenario.category,
+                severity=scenario.severity,
+                verdict=Verdict.ERROR,
+                trace=trace,
+                execution_time_ms=(datetime.now(timezone.utc) - t0).total_seconds() * 1000,
+            )
+
+        evaluator = get_evaluator_for(scenario)
         if evaluator is None:
             logging.getLogger(__name__).warning(
                 "No evaluator registered for category %s", scenario.category
@@ -242,12 +319,9 @@ class Runner:
 
         finding: VulnerabilityFinding | None = None
 
-        if eval_result.verdict in (
-            Verdict.VULNERABLE,
-            Verdict.REFUSAL_ECHO,
-            Verdict.TOOL_POISONING,
-            Verdict.SCHEMA_POISONING,
-            Verdict.PREFERENCE_MANIPULATION,
+        if (
+            eval_result.verdict in VULNERABLE_VERDICTS
+            or eval_result.verdict == Verdict.REFUSAL_ECHO
         ):
             finding = VulnerabilityFinding(
                 scenario_id=scenario.id,
@@ -284,12 +358,7 @@ class Runner:
         do not produce VulnerabilityFinding objects so they are never appended.
         """
         report.results.append(result)
-        if result.verdict in (
-            Verdict.VULNERABLE,
-            Verdict.TOOL_POISONING,
-            Verdict.SCHEMA_POISONING,
-            Verdict.PREFERENCE_MANIPULATION,
-        ):
+        if result.verdict in VULNERABLE_VERDICTS:
             report.vulnerable += 1
             if result.finding:
                 report.findings.append(result.finding)
@@ -316,9 +385,12 @@ class Runner:
                     "inconclusive": 0,
                     "error": 0,
                 }
-            verdict_key = r.verdict.value.lower()
-            # MCP-specific verdicts count as vulnerable in the summary
-            if verdict_key in ("tool_poisoning", "schema_poisoning", "preference_manipulation"):
+            # All "attack succeeded" verdicts (MCP-specific and multi-agent)
+            # roll up into the vulnerable bucket; everything else uses its own
+            # key. .get() keeps the summary robust against any future verdict.
+            if r.verdict in VULNERABLE_VERDICTS:
                 verdict_key = "vulnerable"
-            summary[cat][verdict_key] += 1
+            else:
+                verdict_key = r.verdict.value.lower()
+            summary[cat][verdict_key] = summary[cat].get(verdict_key, 0) + 1
         return summary

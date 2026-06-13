@@ -90,10 +90,10 @@ async def mcp_agent_factory(tools, resources):
 
 ```bash
 # Run MCP scan
-aastf run --adapter mcp --agent-factory your_agent:mcp_agent_factory
+aastf run your_agent:mcp_agent_factory --adapter mcp
 
 # Run only MCP scenarios
-aastf run --adapter mcp --categories ASI01,ASI02,ASI03
+aastf run your_agent:mcp_agent_factory --adapter mcp --category ASI01 --category ASI02 --category ASI03
 ```
 
 ## Compliance Mapping

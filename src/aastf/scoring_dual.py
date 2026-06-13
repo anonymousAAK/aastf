@@ -12,7 +12,11 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from .models.result import ScanReport, Verdict, VulnerabilityFinding
+from .models.result import (
+    ACTIONABLE_VERDICTS,
+    ScanReport,
+    VulnerabilityFinding,
+)
 from .scoring import compute_risk_score
 
 # ---------------------------------------------------------------------------
@@ -124,9 +128,7 @@ def _category_scores(
     for r in report.results:
         cat = str(r.category)
         cat_total[cat] = cat_total.get(cat, 0) + 1
-        if r.verdict in (Verdict.VULNERABLE, Verdict.REFUSAL_ECHO,
-                         Verdict.TOOL_POISONING, Verdict.SCHEMA_POISONING,
-                         Verdict.PREFERENCE_MANIPULATION):
+        if r.verdict in ACTIONABLE_VERDICTS:
             cat_vulnerable[cat] = cat_vulnerable.get(cat, 0) + 1
 
     # If no results, fall back to findings for category enumeration

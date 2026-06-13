@@ -31,6 +31,10 @@ class TraceCollector:
         self._error: str | None = None
         self._started_at: datetime = datetime.now(timezone.utc)
         self._seq: int = 0
+        self._metadata: dict[str, Any] = {}
+        # Every run_id we have seen, used to reconstruct delegation chains
+        # (a child run whose parent is a known run is a delegated sub-agent).
+        self._seen_runs: set[str] = set()
         self._lock: threading.Lock = threading.Lock()
 
     # ------------------------------------------------------------------ recording
@@ -68,6 +72,27 @@ class TraceCollector:
     def set_error(self, error: str) -> None:
         with self._lock:
             self._error = error
+
+    def set_metadata(self, key: str, value: Any) -> None:
+        """Attach an arbitrary key/value to the trace metadata."""
+        with self._lock:
+            self._metadata[key] = value
+
+    def note_parentage(self, run_id: str, parent_run_id: str | None) -> None:
+        """
+        Record a run and (optionally) its parent. When a run's parent is itself
+        a previously-seen run (i.e. a nested chain/agent), we treat the child as
+        a delegation so ``delegations`` is populated for frameworks that expose
+        parent_run_id chains (LangGraph, OpenAI Agents handoffs, etc.).
+        """
+        if not run_id:
+            return
+        with self._lock:
+            parent_known = bool(parent_run_id) and parent_run_id in self._seen_runs
+            already = run_id in self._delegations
+            self._seen_runs.add(run_id)
+        if parent_known and not already:
+            self.record_delegation(run_id)
 
     # ------------------------------------------------------------------ LangGraph
 
@@ -138,6 +163,9 @@ class TraceCollector:
         elif kind == "on_chain_start":
             # Each chain_start = one planning iteration
             self.increment_iteration()
+            # A chain whose parent is itself a known chain is a sub-agent /
+            # delegation in the run graph (ASI03 / ASI07 analysis).
+            self.note_parentage(run_id, parent_id)
             self.record_event(
                 TraceEvent(
                     event_type=TraceEventType.CHAIN_START,
@@ -197,4 +225,5 @@ class TraceCollector:
                 error=self._error,
                 iteration_count=self._iteration_count,
                 delegations=list(self._delegations),
+                metadata=dict(self._metadata),
             )

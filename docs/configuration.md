@@ -1,6 +1,8 @@
 # Configuration Reference
 
-AASTF can be configured via CLI flags or an `aastf.yaml` configuration file.
+AASTF scans are configured via CLI flags. `aastf init` scaffolds an `aastf.yaml`
+reference template that documents the recommended settings and their flag
+equivalents (see the [`aastf.yaml`](#aastfyaml-configuration-file) section).
 
 ## CLI Commands
 
@@ -143,7 +145,11 @@ aastf --version
 
 ## `aastf.yaml` Configuration File
 
-Generate a configuration file with `aastf init`. The file supports the following fields:
+`aastf init` scaffolds the template below as a documented reference for a scan's
+settings. Each field maps to the corresponding `aastf run` flag (`agent_module`
+is the positional argument, `adapter` → `--adapter`, `fail_on` → `--fail-on`,
+`formats` → repeated `--format`, etc.); drive a scan with those flags. The fields
+are:
 
 ```yaml
 # Agent module path (dotted.path:callable)
@@ -220,4 +226,7 @@ Each finding receives a CVSS-adapted score (0.0-10.0):
 | LOW | 3.0 | 1.05 |
 | INFO | 1.0 | 0.35 |
 
-The overall run risk score (0-100) is a severity-weighted average of all actionable findings, normalized against the maximum possible score.
+The overall run risk score (0-100) is a cumulative ("noisy-OR") aggregation of all
+actionable findings: it is dominated by the most severe finding and rises
+monotonically as more findings are discovered (adding a finding never lowers the
+score), saturating toward 100.

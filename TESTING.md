@@ -1,8 +1,8 @@
 # AASTF -- Test Results
 
-**2815 tests collected -- 2815 passing -- 0 failures -- lint clean (ruff)**
+**2961 tests collected -- 2 skipped -- 0 failures -- lint clean (ruff)**
 
-Last run: May 2026 -- Python 3.10+ -- pytest 8.x
+Last verified: June 2026 -- Python 3.10+ -- pytest 8.x
 
 ---
 
@@ -10,10 +10,10 @@ Last run: May 2026 -- Python 3.10+ -- pytest 8.x
 
 | Metric | Value |
 |--------|-------|
-| Total tests | 2815 |
-| Passing | 2815 |
+| Total tests | 2961 |
+| Passing | 2959 |
 | Failures | 0 |
-| Skipped | 0 |
+| Skipped | 2 |
 | Ruff lint | Clean |
 
 ---
@@ -38,9 +38,21 @@ The test suite covers every module in the framework:
 
 ---
 
+## Test Categories
+
+| Category | Directory | What it covers |
+|----------|-----------|---------------|
+| Unit | `tests/unit/` | Individual module tests (scoring, runner, models, adapters, reporters, etc.) |
+| Adversarial | `tests/adversarial/` | Correctness fuzzing, bypass attempts, schema attacks, supply chain, docs truthfulness |
+| Contracts | `tests/contracts/` | Adapter interface contracts, scenario structural contracts |
+| Self-audit | `tests/self_audit/` | Scenario library completeness (136+ scenarios, >= 5/category, severity distribution) |
+| Integration | `tests/integration/` | Sandbox server integration tests (no live LLM required) |
+
+---
+
 ## Test Suites
 
-Tests are organized under `tests/unit/`, `tests/self_audit/`, and `tests/integration/`.
+Tests are organized under `tests/unit/`, `tests/adversarial/`, `tests/contracts/`, `tests/self_audit/`, and `tests/integration/`.
 
 Key suites include:
 
@@ -80,15 +92,11 @@ ruff:    clean
 OS:      Windows 11
 ```
 
-## Running Tests
+## Linting
 
 ```bash
-# Unit + self-audit (no API key needed)
-pytest tests/unit/ tests/self_audit/ -v
-
-# Integration tests (requires LLM API key)
-pytest tests/integration/ -v -m integration
-
-# All with coverage
-pytest tests/ --cov=aastf --cov-report=term-missing
+ruff check src/ tests/
 ```
+
+CI runs the full suite and `ruff` on every push and pull request across Python
+3.10–3.13 (see `.github/workflows/ci.yml`).

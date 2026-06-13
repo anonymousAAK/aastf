@@ -55,7 +55,7 @@ class SandboxServer:
         await sandbox.stop()           # clean shutdown
     """
 
-    def __init__(self) -> None:
+    def __init__(self, tool_timeout: float = _TOOL_TIMEOUT_SECONDS) -> None:
         self._port: int = _find_free_port()
         self._interceptor = RequestInterceptor()
         self._response_configs: dict[str, ToolResponseConfig] = {}
@@ -63,6 +63,8 @@ class SandboxServer:
         self._server: uvicorn.Server | None = None
         self._task: asyncio.Task | None = None  # type: ignore[type-arg]
         self._rate_limit_log: dict[str, list[float]] = {}  # tool_name -> list of timestamps
+        self._last_rate_limit_cleanup: float = time.monotonic()
+        self._tool_timeout = tool_timeout
         self._app = self._build_app()
 
     # ---------------------------------------------------------------- public API
@@ -249,9 +251,12 @@ class SandboxServer:
 
         @app.post("/tools/{tool_name}")
         async def handle_tool(tool_name: str, request: Request) -> Response:
-            # --- request size limit ---
+            # --- request body size enforcement ---
             content_length = request.headers.get("content-length", "0")
             if int(content_length) > _MAX_REQUEST_BYTES:
+                return JSONResponse({"error": "Request too large"}, status_code=413)
+            raw_body = await request.body()
+            if len(raw_body) > _MAX_REQUEST_BYTES:
                 return JSONResponse({"error": "Request too large"}, status_code=413)
 
             # --- rate limiting (per tool, sliding window) ---
@@ -267,65 +272,100 @@ class SandboxServer:
                 )
             sandbox._rate_limit_log[tool_name].append(now)
 
+            # --- periodic cleanup of stale rate limit entries ---
+            if now - sandbox._last_rate_limit_cleanup > _RATE_LIMIT_CLEANUP_INTERVAL:
+                sandbox._cleanup_rate_limits()
+
             t0 = time.monotonic()
 
             try:
-                body: dict = await request.json()
+                import json as _json
+
+                body: dict = _json.loads(raw_body) if raw_body else {}
             except Exception:
                 body = {}
 
             config = sandbox._response_configs.get(tool_name)
 
-            # --- apply delay ---
-            if config and config.delay_seconds > 0:
-                await asyncio.sleep(config.delay_seconds)
+            logger.debug("Tool call: %s (params=%s)", tool_name, list(body.keys()))
 
-            # --- error mode ---
-            if config and config.response_mode == "error":
-                resp_body = {"error": f"Simulated failure for {tool_name}", "code": 500}
-                await sandbox._interceptor.record(
-                    InterceptedCall(
-                        tool_name=tool_name,
-                        request_body=body,
-                        response_body=resp_body,
-                        status_code=500,
-                        duration_ms=(time.monotonic() - t0) * 1000,
+            async def _execute_tool() -> Response:
+                # --- apply delay ---
+                if config and config.delay_seconds > 0:
+                    await asyncio.sleep(config.delay_seconds)
+
+                # --- error mode ---
+                if config and config.response_mode == "error":
+                    resp_body = {"error": f"Simulated failure for {tool_name}", "code": 500}
+                    await sandbox._interceptor.record(
+                        InterceptedCall(
+                            tool_name=tool_name,
+                            request_body=body,
+                            response_body=resp_body,
+                            status_code=500,
+                            duration_ms=(time.monotonic() - t0) * 1000,
+                        )
                     )
-                )
-                return JSONResponse(resp_body, status_code=500)
+                    return JSONResponse(resp_body, status_code=500)
 
-            # --- malformed mode ---
-            if config and config.response_mode == "malformed":
-                raw = "not{valid[json"
+                # --- malformed mode ---
+                if config and config.response_mode == "malformed":
+                    raw = "not{valid[json"
+                    await sandbox._interceptor.record(
+                        InterceptedCall(
+                            tool_name=tool_name,
+                            request_body=body,
+                            response_body=raw,
+                            status_code=200,
+                            duration_ms=(time.monotonic() - t0) * 1000,
+                        )
+                    )
+                    return PlainTextResponse(raw, status_code=200)
+
+                # --- success mode (default) ---
+                if config and config.response_payload is not None:
+                    rendered = sandbox._render(config.response_payload, body)
+                else:
+                    rendered = {"status": "ok", "tool": tool_name, "result": None}
+
                 await sandbox._interceptor.record(
                     InterceptedCall(
                         tool_name=tool_name,
                         request_body=body,
-                        response_body=raw,
+                        response_body=rendered,
                         status_code=200,
                         duration_ms=(time.monotonic() - t0) * 1000,
                     )
                 )
-                return PlainTextResponse(raw, status_code=200)
+                return JSONResponse(rendered)
 
-            # --- success mode (default) ---
-            if config and config.response_payload is not None:
-                rendered = sandbox._render(config.response_payload, body)
-            else:
-                rendered = {"status": "ok", "tool": tool_name, "result": None}
-
-            await sandbox._interceptor.record(
-                InterceptedCall(
-                    tool_name=tool_name,
-                    request_body=body,
-                    response_body=rendered,
-                    status_code=200,
-                    duration_ms=(time.monotonic() - t0) * 1000,
+            try:
+                return await asyncio.wait_for(
+                    _execute_tool(), timeout=sandbox._tool_timeout
                 )
-            )
-            return JSONResponse(rendered)
+            except TimeoutError:
+                logger.warning("Tool %s timed out after %ss", tool_name, sandbox._tool_timeout)
+                return JSONResponse(
+                    {"error": f"Tool execution timed out after {sandbox._tool_timeout}s"},
+                    status_code=504,
+                )
 
         return app
+
+    def _cleanup_rate_limits(self) -> None:
+        """Remove rate-limit entries older than the window."""
+        now = time.monotonic()
+        cutoff = now - _RATE_LIMIT_WINDOW
+        stale_keys = []
+        for tool_name, timestamps in self._rate_limit_log.items():
+            filtered = [ts for ts in timestamps if ts > cutoff]
+            if filtered:
+                self._rate_limit_log[tool_name] = filtered
+            else:
+                stale_keys.append(tool_name)
+        for key in stale_keys:
+            del self._rate_limit_log[key]
+        self._last_rate_limit_cleanup = now
 
     def _render(self, payload: Any, context: dict) -> Any:
         """Recursively render Jinja2 templates in the response payload."""

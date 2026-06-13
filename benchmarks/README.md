@@ -2,6 +2,61 @@
 
 This directory contains benchmark configurations for running AASTF across multiple models and agentic frameworks. The primary configuration, `benchmark-8x4.yaml`, tests 8 LLMs against 4 frameworks using the full AASTF scenario library (ASI, MCP, CVE).
 
+## Reproducible, key-free reference run (no API keys)
+
+For a benchmark you can run end-to-end with **no API keys and no network**, use the
+built-in deterministic `local` provider:
+
+```bash
+scripts/run_local_benchmark.sh
+```
+
+> **SYNTHETIC / REFERENCE ONLY.** The `local` provider
+> (`aastf.benchmark.providers.DeterministicProvider`) does **not** call any model
+> API. It produces verdicts as a pure, seeded function of the
+> `(model_id, framework, scenario_id)` triple. These are reproducible fixtures
+> for exercising the benchmark pipeline — **not** measurements of any real model.
+> Every artifact it generates is labelled `synthetic`.
+
+The script:
+
+1. Runs `benchmarks/benchmark-local-reference.yaml` (all models use `provider: local`).
+2. Writes a byte-stable result to `benchmarks/results/local-reference.json`.
+3. Regenerates `benchmarks/results/local-reference-summary.md` **from that result
+   data** (no hand-written numbers).
+
+Re-running is idempotent — verify with:
+
+```bash
+scripts/run_local_benchmark.sh
+git diff --exit-code benchmarks/results/
+```
+
+Because the provider is seeded, the same config always yields identical verdicts
+and (jittered-but-deterministic) latencies across machines and Python runs.
+
+### Provider / agent-factory contract (for real providers)
+
+The runner delegates each `(model, framework, scenario)` cell to a pluggable
+provider implementing `aastf.benchmark.providers.AgentProvider`:
+
+```python
+class AgentProvider(Protocol):
+    name: str
+    async def evaluate(self, model, framework, scenario, run_index) -> ProviderOutcome: ...
+```
+
+- If **all** configured models use `provider: local`, the runner auto-wires the
+  key-free deterministic provider — no `NotImplementedError`, no keys.
+- A **real** provider (calling an actual model API) is supplied by the caller:
+  `BenchmarkRunner(config, provider=MyProvider())`. It must read its key from the
+  env var named by `model.api_key_env` (failing fast if absent — a raised
+  exception degrades a single cell to `ERROR`, not the whole run), drive the
+  framework agent for `framework` against the scenario, and return a
+  `ProviderOutcome` with `synthetic=False`.
+
+Real providers are intentionally not shipped here (they need keys and network).
+
 ## Quick Start
 
 ```bash
@@ -15,13 +70,11 @@ export GOOGLE_API_KEY="..."
 export TOGETHER_API_KEY="..."
 export MISTRAL_API_KEY="..."
 
-# 3. Run the benchmark
-aastf benchmark --config benchmarks/benchmark-8x4.yaml
+# 3. Run the benchmark (models/frameworks/scenarios are defined in the config)
+aastf benchmark run --config benchmarks/benchmark-8x4.yaml
 
-# 4. Run a subset (single model, single framework)
-aastf benchmark --config benchmarks/benchmark-8x4.yaml \
-  --model gpt-4o-mini \
-  --framework langgraph
+# To run a subset, copy the config and trim its `models:` / `frameworks:` lists,
+# then point `run` at the trimmed file.
 ```
 
 ## Required Environment Variables
@@ -114,7 +167,7 @@ Create your own benchmark config by copying and modifying `benchmark-8x4.yaml`:
 ```bash
 cp benchmarks/benchmark-8x4.yaml benchmarks/my-benchmark.yaml
 # Edit models, frameworks, scenario_packs, etc.
-aastf benchmark --config benchmarks/my-benchmark.yaml
+aastf benchmark run --config benchmarks/my-benchmark.yaml
 ```
 
 To benchmark a single model against a single framework for quick iteration:
@@ -144,7 +197,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install "aastf[langgraph,crewai,openai_agents,pydantic_ai]"
-      - run: aastf benchmark --config benchmarks/benchmark-8x4.yaml
+      - run: aastf benchmark run --config benchmarks/benchmark-8x4.yaml
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

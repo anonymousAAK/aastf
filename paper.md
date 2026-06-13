@@ -27,8 +27,10 @@ AASTF (Agentic AI Security Testing Framework) is an open-source Python framework
 performs automated security testing of autonomous AI agent systems. Unlike existing
 red-teaming tools that evaluate language model outputs in isolation, AASTF instruments
 the agent execution graph directly — intercepting every tool call, planning iteration,
-and inter-agent delegation at runtime. It ships with 50 attack scenarios mapped to the
-OWASP Top 10 for Agentic Applications (ASI) taxonomy [@owasp_asi_2025] and produces
+and inter-agent delegation at runtime. It ships with over 130 built-in attack scenarios
+mapped to the OWASP Top 10 for Agentic Applications (ASI) taxonomy [@owasp_asi_2025],
+with additional coverage for MCP, multi-agent, agent-to-agent, and CVE-derived scenarios,
+and produces
 machine-readable verdicts (VULNERABLE, REFUSAL\_ECHO, SAFE) with SARIF, JSON, and HTML
 reports suitable for CI/CD integration and EU AI Act [@eu_ai_act_2024] compliance preparation.
 
@@ -94,8 +96,9 @@ AASTF is organised as a five-layer architecture:
   execution. This is non-invasive: no modification of the agent's source code or the
   framework's internals is required.
 
-- **Layer 2 (Scenarios):** A registry of 50 YAML-defined attack scenarios, 5 per OWASP
-  ASI category, specifying the attack payload, injection point (`user_message`,
+- **Layer 2 (Scenarios):** A registry of over 130 YAML-defined attack scenarios, at least
+  five per OWASP ASI category plus MCP, multi-agent, A2A, and CVE-derived packs, each
+  specifying the attack payload, injection point (`user_message`,
   `tool_response`, `memory`, `system_prompt`), detection criteria, and expected safe
   behaviour. The YAML format is human-readable and community-extensible.
 

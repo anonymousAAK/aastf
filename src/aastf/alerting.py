@@ -82,10 +82,18 @@ def _http_post(url: str, payload: dict[str, Any], headers: dict[str, str] | None
     if headers:
         hdrs.update(headers)
 
+    from .netsec import UnsafeURLError, validate_outbound_url
+
+    try:
+        validate_outbound_url(url)
+    except UnsafeURLError as exc:
+        logger.error("Refusing to POST to unsafe URL: %s", exc)
+        return 0
+
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=body, headers=hdrs, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 (scheme validated above)
             return resp.status  # type: ignore[return-value]
     except urllib.error.URLError as exc:
         logger.error("HTTP POST to %s failed: %s", url, exc)

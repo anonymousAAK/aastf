@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import time
 import urllib.request
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +21,20 @@ from aastf.web_ui import (
     _risk_color,
     _verdict_distribution,
 )
+
+
+def _wait_for_server(port: int, timeout: float = 3.0) -> None:
+    """Poll until the server is ready, instead of fixed sleep."""
+    import time as _time
+    deadline = _time.monotonic() + timeout
+    while _time.monotonic() < deadline:
+        try:
+            urllib.request.urlopen(f"http://127.0.0.1:{port}/api/health", timeout=0.5)
+            return
+        except Exception:
+            _time.sleep(0.05)
+    raise TimeoutError(f"Server on port {port} did not start within {timeout}s")
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -330,7 +343,7 @@ class TestServerLifecycle:
         srv = WebUIServer(cfg)
         srv.load_report(report)
         srv.start_background()
-        time.sleep(0.3)
+        _wait_for_server(free_port)
 
         # Health check
         url = f"http://127.0.0.1:{free_port}/api/health"
@@ -350,7 +363,7 @@ class TestServerLifecycle:
         srv = WebUIServer(cfg)
         srv.load_report(report)
         srv.start_background()
-        time.sleep(0.3)
+        _wait_for_server(free_port)
 
         url = f"http://127.0.0.1:{free_port}/api/report"
         resp = urllib.request.urlopen(url, timeout=5)
@@ -369,7 +382,7 @@ class TestServerLifecycle:
         srv = WebUIServer(cfg)
         srv.load_report(report)
         srv.start_background()
-        time.sleep(0.3)
+        _wait_for_server(free_port)
 
         url = f"http://127.0.0.1:{free_port}/api/scenarios"
         resp = urllib.request.urlopen(url, timeout=5)
@@ -389,7 +402,7 @@ class TestServerLifecycle:
         srv = WebUIServer(cfg)
         srv.load_report(report)
         srv.start_background()
-        time.sleep(0.3)
+        _wait_for_server(free_port)
 
         url = f"http://127.0.0.1:{free_port}/"
         resp = urllib.request.urlopen(url, timeout=5)
@@ -407,7 +420,7 @@ class TestServerLifecycle:
         srv = WebUIServer(cfg)
         srv.load_report(report)
         srv.start_background()
-        time.sleep(0.3)
+        _wait_for_server(free_port)
 
         url = f"http://127.0.0.1:{free_port}/explorer"
         resp = urllib.request.urlopen(url, timeout=5)
@@ -425,7 +438,7 @@ class TestServerLifecycle:
         srv = WebUIServer(cfg)
         srv.load_report(report)
         srv.start_background()
-        time.sleep(0.3)
+        _wait_for_server(free_port)
 
         url = f"http://127.0.0.1:{free_port}/coverage"
         resp = urllib.request.urlopen(url, timeout=5)
@@ -443,7 +456,7 @@ class TestServerLifecycle:
         srv = WebUIServer(cfg)
         srv.load_report(report)
         srv.start_background()
-        time.sleep(0.3)
+        _wait_for_server(free_port)
 
         url = f"http://127.0.0.1:{free_port}/blast-radius"
         resp = urllib.request.urlopen(url, timeout=5)
@@ -461,7 +474,7 @@ class TestServerLifecycle:
         srv = WebUIServer(cfg)
         srv.load_report(report)
         srv.start_background()
-        time.sleep(0.3)
+        _wait_for_server(free_port)
 
         url = f"http://127.0.0.1:{free_port}/nonexistent"
         try:
@@ -481,7 +494,7 @@ class TestServerLifecycle:
         srv = WebUIServer(cfg)
         # No report loaded
         srv.start_background()
-        time.sleep(0.3)
+        _wait_for_server(free_port)
 
         url = f"http://127.0.0.1:{free_port}/"
         try:

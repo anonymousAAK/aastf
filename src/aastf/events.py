@@ -131,9 +131,16 @@ class EventBus:
         for cb in self._subscribers.get(type(event), []):
             try:
                 cb(event)
+            except (TypeError, ValueError, AttributeError, KeyError) as exc:
+                logger.warning(
+                    "Subscriber %s raised %s on %s (scan_id=%s)",
+                    cb, type(exc).__name__, type(event).__name__,
+                    event.scan_id, exc_info=True,
+                )
             except Exception:
                 logger.warning(
-                    "Subscriber %s raised on %s", cb, type(event).__name__, exc_info=True,
+                    "Subscriber %s raised on %s (scan_id=%s)",
+                    cb, type(event).__name__, event.scan_id, exc_info=True,
                 )
 
     async def emit_async(self, event: BaseEvent) -> None:
@@ -145,9 +152,16 @@ class EventBus:
                     await cb(event)
                 else:
                     cb(event)
+            except (TypeError, ValueError, AttributeError, KeyError) as exc:
+                logger.warning(
+                    "Subscriber %s raised %s on %s (scan_id=%s)",
+                    cb, type(exc).__name__, type(event).__name__,
+                    event.scan_id, exc_info=True,
+                )
             except Exception:
                 logger.warning(
-                    "Subscriber %s raised on %s", cb, type(event).__name__, exc_info=True,
+                    "Subscriber %s raised on %s (scan_id=%s)",
+                    cb, type(event).__name__, event.scan_id, exc_info=True,
                 )
 
     # ── query / export ───────────────────────────────────────────────
