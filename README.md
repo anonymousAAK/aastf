@@ -329,7 +329,7 @@ AASTF is free and open-source under MIT. **AASTF Enterprise** adds the capabilit
 | Cloud deployment templates | — | Yes |
 | Priority support | — | Yes |
 
-Contact **enterprise@aastf.dev** for licensing.
+
 
 ---
 
