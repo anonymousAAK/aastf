@@ -1,6 +1,6 @@
 # AASTF -- Test Results
 
-**2961 tests collected -- 2 skipped -- 0 failures -- lint clean (ruff)**
+**2976 tests collected -- 2 skipped -- 0 failures -- lint clean (ruff)**
 
 Last verified: June 2026 -- Python 3.10+ -- pytest 8.x
 
@@ -10,8 +10,8 @@ Last verified: June 2026 -- Python 3.10+ -- pytest 8.x
 
 | Metric | Value |
 |--------|-------|
-| Total tests | 2961 |
-| Passing | 2959 |
+| Total tests | 2976 |
+| Passing | 2974 |
 | Failures | 0 |
 | Skipped | 2 |
 | Ruff lint | Clean |
