@@ -21,6 +21,16 @@ from aastf.cloud import (
     Workspace,
 )
 
+# A valid 32-char alphanumeric token used across CloudPlatform tests.
+_VALID_TOKEN = "abcdefghijklmnopqrstuvwxyz123456"
+
+
+def _authed_platform() -> CloudPlatform:
+    """Return a CloudPlatform that has already been authenticated."""
+    cp = CloudPlatform()
+    cp.authenticate(_VALID_TOKEN)
+    return cp
+
 # ── PricingTier ──────────────────────────────────────────────────────────────
 
 class TestPricingTier:
@@ -215,7 +225,7 @@ class TestTicketSync:
 
 class TestCloudPlatform:
     def test_create_workspace(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", PricingTier.TEAM, "alice")
         assert ws.name == "acme"
         assert ws.tier == PricingTier.TEAM
@@ -223,67 +233,67 @@ class TestCloudPlatform:
         assert "alice" in ws.members
 
     def test_create_workspace_audit_logged(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", owner="alice")
         logs = cp.get_audit_log(ws)
         assert len(logs) == 1
         assert logs[0].action == "workspace.create"
 
     def test_add_member(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", PricingTier.TEAM, "alice")
         cp.add_member(ws, "bob", RBACRole.MEMBER)
         assert "bob" in ws.members
 
     def test_add_member_respects_limits(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("tiny", PricingTier.FREE, "alice")
         # FREE allows 1 member; owner is already in
         with pytest.raises(ValueError, match="member limit"):
             cp.add_member(ws, "bob")
 
     def test_add_member_idempotent(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", PricingTier.TEAM, "alice")
         cp.add_member(ws, "bob")
         cp.add_member(ws, "bob")  # should not duplicate
         assert ws.members.count("bob") == 1
 
     def test_get_member_role(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", PricingTier.TEAM, "alice")
         cp.add_member(ws, "bob", RBACRole.VIEWER)
         assert cp.get_member_role(ws, "bob") == RBACRole.VIEWER
 
     def test_has_permission(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", PricingTier.TEAM, "alice")
         assert cp.has_permission(ws, "alice", Permission.BILLING_MANAGE)
 
     def test_has_permission_non_member(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", PricingTier.TEAM, "alice")
         assert not cp.has_permission(ws, "eve", Permission.SCAN_VIEW)
 
     def test_check_limits_under(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", PricingTier.FREE, "alice")
         assert cp.check_limits(ws) is True
 
     def test_check_limits_exceeded(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", PricingTier.FREE, "alice")
         ws.scan_count = 10
         assert cp.check_limits(ws) is False
 
     def test_increment_scan(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", owner="alice")
         cp.increment_scan(ws)
         assert ws.scan_count == 1
 
     def test_get_audit_log_limit(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", owner="alice")
         for i in range(5):
             cp.log_audit(ws, AuditLogEntry(actor="a", action=f"act{i}", resource="r"))
@@ -291,21 +301,21 @@ class TestCloudPlatform:
         assert len(cp.get_audit_log(ws, limit=3)) == 3
 
     def test_ci_integration(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", owner="alice")
         ci = CIIntegration(provider="github", repo_url="https://github.com/a/b")
         cp.add_ci_integration(ws, ci)
         assert len(cp.get_ci_integrations(ws)) == 1
 
     def test_ticket_sync(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", owner="alice")
         ts = TicketSync(provider="jira", project_key="SEC", api_url="https://jira.example.com")
         cp.add_ticket_sync(ws, ts)
         assert len(cp.get_ticket_syncs(ws)) == 1
 
     def test_sso_config(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", owner="alice")
         sso = SSOConfig(
             provider="azure_ad",
@@ -318,7 +328,88 @@ class TestCloudPlatform:
         assert cp.get_sso(ws).provider == "azure_ad"
 
     def test_get_workspace(self):
-        cp = CloudPlatform()
+        cp = _authed_platform()
         ws = cp.create_workspace("acme", owner="alice")
         assert cp.get_workspace(ws.id) is ws
         assert cp.get_workspace("nonexistent") is None
+
+
+# ── Authentication ──────────────────────────────────────────────────────────
+
+class TestCloudPlatformAuth:
+    """Tests for token/API key validation on CloudPlatform."""
+
+    def test_authenticate_valid_token(self):
+        cp = CloudPlatform()
+        assert cp.authenticate(_VALID_TOKEN) is True
+
+    def test_authenticate_with_hyphens(self):
+        token = "abcdefgh-ijklmnop-qrstuvwx-yz1234"  # 35 chars with hyphens
+        cp = CloudPlatform()
+        assert cp.authenticate(token) is True
+
+    def test_authenticate_empty_string_rejected(self):
+        cp = CloudPlatform()
+        assert cp.authenticate("") is False
+
+    def test_authenticate_too_short_rejected(self):
+        cp = CloudPlatform()
+        assert cp.authenticate("abc123") is False  # < 32
+
+    def test_authenticate_31_chars_rejected(self):
+        cp = CloudPlatform()
+        assert cp.authenticate("a" * 31) is False
+
+    def test_authenticate_32_chars_accepted(self):
+        cp = CloudPlatform()
+        assert cp.authenticate("a" * 32) is True
+
+    def test_authenticate_special_chars_rejected(self):
+        cp = CloudPlatform()
+        assert cp.authenticate("a" * 31 + "!") is False
+
+    def test_authenticate_spaces_rejected(self):
+        cp = CloudPlatform()
+        assert cp.authenticate("a" * 31 + " ") is False
+
+    def test_authenticate_non_string_rejected(self):
+        cp = CloudPlatform()
+        assert cp.authenticate(12345) is False  # type: ignore[arg-type]
+
+    def test_require_auth_raises_when_unauthenticated(self):
+        cp = CloudPlatform()
+        with pytest.raises(PermissionError, match="not authenticated"):
+            cp.create_workspace("fail")
+
+    def test_require_auth_passes_after_authenticate(self):
+        cp = _authed_platform()
+        ws = cp.create_workspace("ok", owner="alice")
+        assert ws.name == "ok"
+
+    def test_guarded_add_member_requires_auth(self):
+        cp = CloudPlatform()
+        ws = Workspace(name="x", owner="alice")
+        with pytest.raises(PermissionError, match="not authenticated"):
+            cp.add_member(ws, "bob")
+
+    def test_guarded_increment_scan_requires_auth(self):
+        cp = CloudPlatform()
+        ws = Workspace(name="x", owner="alice")
+        with pytest.raises(PermissionError, match="not authenticated"):
+            cp.increment_scan(ws)
+
+    def test_guarded_set_sso_requires_auth(self):
+        cp = CloudPlatform()
+        ws = Workspace(name="x", owner="alice")
+        sso = SSOConfig(
+            provider="saml", entity_id="urn:t", sso_url="https://x", certificate="C",
+        )
+        with pytest.raises(PermissionError, match="not authenticated"):
+            cp.set_sso(ws, sso)
+
+    def test_bad_token_clears_previous_auth(self):
+        cp = _authed_platform()
+        # re-authenticate with bad token
+        assert cp.authenticate("short") is False
+        with pytest.raises(PermissionError, match="not authenticated"):
+            cp.create_workspace("fail")

@@ -9,6 +9,7 @@ retry storms (ASI08), malformed JSON handling, timeout behavior.
 from __future__ import annotations
 
 import asyncio
+import logging
 import socket
 import time
 from typing import Any
@@ -23,11 +24,17 @@ from ..exceptions import SandboxStartError
 from ..models.scenario import AttackScenario, MCPResourceConfig, ToolResponseConfig
 from .interceptor import InterceptedCall, RequestInterceptor
 
+logger = logging.getLogger(__name__)
+
 _jinja = SandboxedEnvironment(loader=BaseLoader(), autoescape=True)
+# Block the Jinja2 'do' extension (statement execution) for safety
+_jinja.globals.pop("do", None)
 
 _MAX_REQUEST_BYTES = 10_000_000  # 10 MB
 _RATE_LIMIT_WINDOW = 60  # seconds
 _RATE_LIMIT_MAX_CALLS = 200  # max calls per tool per window
+_TOOL_TIMEOUT_SECONDS = 30  # global tool execution timeout
+_RATE_LIMIT_CLEANUP_INTERVAL = 60  # seconds between cleanup sweeps
 
 
 def _find_free_port() -> int:

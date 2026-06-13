@@ -7,9 +7,28 @@
  * Provides routes: POST /scan, GET /health, GET /scenarios.
  * Loads scenario YAML files, runs them against a provided adapter,
  * and returns results in SARIF format.
+ *
+ * ## Sandbox Isolation & Resource Limits
+ *
+ * **PRODUCTION DEPLOYMENT:** This server should run inside a container
+ * (Docker, gVisor, Firecracker) with resource constraints applied at the
+ * runtime level:
+ *
+ *   - CPU:    `--cpus=1`  (or cgroup cpu.max)
+ *   - Memory: `--memory=512m` (or cgroup memory.max)
+ *   - PIDs:   `--pids-limit=64`
+ *   - Network: `--network=none` or an allowlist-only firewall
+ *   - Filesystem: read-only rootfs, tmpfs for scratch
+ *   - Seccomp: default Docker profile or stricter
+ *
+ * The in-process guards below (max body size, request timeout, optional
+ * subprocess execution) are defense-in-depth — they do NOT replace
+ * container-level isolation.
  */
 
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
+import { fork, type ChildProcess } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { formatSARIF } from "./reporter.js";
 import {
   ScenarioRunner,
@@ -37,6 +56,14 @@ export interface SandboxServerConfig {
   adapter?: BaseAdapter;
   /** Timeout per scenario in milliseconds. Default: 30_000. */
   timeoutMs?: number;
+  /** Maximum request body size in bytes. Default: 1_048_576 (1 MiB). */
+  maxBodyBytes?: number;
+  /**
+   * Run scan execution in a forked child process for isolation.
+   * The child inherits only the scenario data and adapter config — not the
+   * full server context. Default: false.
+   */
+  subprocess?: boolean;
 }
 
 /** Scan request body for POST /scan. */
@@ -78,7 +105,7 @@ export interface ScanResponse {
  */
 export class SandboxServer {
   private readonly config: Required<
-    Pick<SandboxServerConfig, "host" | "port" | "timeoutMs">
+    Pick<SandboxServerConfig, "host" | "port" | "timeoutMs" | "maxBodyBytes" | "subprocess">
   > & SandboxServerConfig;
   private server: Server | null = null;
   private loadedScenarios: AttackScenario[] = [];
@@ -89,6 +116,8 @@ export class SandboxServer {
       host: config.host ?? "127.0.0.1",
       port: config.port ?? 9200,
       timeoutMs: config.timeoutMs ?? 30_000,
+      maxBodyBytes: config.maxBodyBytes ?? 1_048_576, // 1 MiB
+      subprocess: config.subprocess ?? false,
     };
 
     // Pre-load scenarios if path or scenarios provided
@@ -105,6 +134,16 @@ export class SandboxServer {
   async start(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.server = createServer((req, res) => {
+        // Per-request timeout: abort requests that exceed the configured
+        // scenario timeout plus a 5-second grace period for I/O overhead.
+        const requestTimeout = this.config.timeoutMs + 5_000;
+        res.setTimeout(requestTimeout, () => {
+          if (!res.headersSent) {
+            this.sendError(res, 408, "Request timeout");
+          }
+          res.destroy();
+        });
+
         this.handleRequest(req, res).catch((err) => {
           this.sendError(res, 500, `Internal server error: ${err}`);
         });
@@ -252,15 +291,20 @@ export class SandboxServer {
       return;
     }
 
-    // Parse request body
+    // Parse request body (with size limit enforcement)
     let body: ScanRequest = {};
     try {
-      const rawBody = await readBody(req);
+      const rawBody = await readBody(req, this.config.maxBodyBytes);
       if (rawBody.length > 0) {
         body = JSON.parse(rawBody) as ScanRequest;
       }
-    } catch {
-      this.sendError(res, 400, "Invalid JSON in request body");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("exceeds maximum size")) {
+        this.sendError(res, 413, msg);
+      } else {
+        this.sendError(res, 400, "Invalid JSON in request body");
+      }
       return;
     }
 
@@ -283,12 +327,18 @@ export class SandboxServer {
       return;
     }
 
-    // Run the scan
-    const runner = new ScenarioRunner(this.config.adapter, {
-      timeoutMs: this.config.timeoutMs,
-    });
+    // Run the scan — either in-process or in a forked child process.
+    let report: ScanReport;
 
-    const report = await runner.runScenarios(scenarios);
+    if (this.config.subprocess) {
+      report = await this.runInSubprocess(scenarios);
+    } else {
+      const runner = new ScenarioRunner(this.config.adapter, {
+        timeoutMs: this.config.timeoutMs,
+      });
+      report = await runner.runScenarios(scenarios);
+    }
+
     const sarif = formatSARIF(report);
 
     const response: ScanResponse = {
@@ -303,6 +353,76 @@ export class SandboxServer {
     };
 
     this.sendJSON(res, 200, response);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Subprocess isolation
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Run scenarios in a forked child process for isolation.
+   *
+   * The child process receives the scenario data and adapter config via IPC,
+   * executes the scan, and sends back the report. If the child exceeds the
+   * timeout it is killed with SIGKILL.
+   *
+   * NOTE: The adapter must be serialisable (config-only) for this mode.
+   * Adapters that hold open connections or closures cannot be transferred.
+   */
+  private runInSubprocess(scenarios: AttackScenario[]): Promise<ScanReport> {
+    return new Promise<ScanReport>((resolve, reject) => {
+      // Resolve the worker script path relative to this file.
+      // In the built output this will be sandbox-worker.js next to sandbox-server.js.
+      const workerPath = new URL("./sandbox-worker.js", import.meta.url);
+      let workerFile: string;
+      try {
+        workerFile = fileURLToPath(workerPath);
+      } catch {
+        // Fallback: same directory, swap server -> worker
+        workerFile = (process.argv[1] ?? "").replace("sandbox-server", "sandbox-worker");
+      }
+
+      const child: ChildProcess = fork(workerFile, [], {
+        stdio: ["ignore", "pipe", "pipe", "ipc"],
+        // Drop any extra env vars the parent may carry.
+        env: { NODE_ENV: process.env["NODE_ENV"] ?? "production" },
+        serialization: "json",
+      });
+
+      const killTimer = setTimeout(() => {
+        child.kill("SIGKILL");
+        reject(new Error("Subprocess scan timed out"));
+      }, this.config.timeoutMs + 10_000);
+
+      child.on("message", (msg: ScanWorkerMessage) => {
+        clearTimeout(killTimer);
+        if (msg.type === "result") {
+          resolve(msg.report);
+        } else if (msg.type === "error") {
+          reject(new Error(msg.message));
+        }
+        child.kill();
+      });
+
+      child.on("error", (err) => {
+        clearTimeout(killTimer);
+        reject(err);
+      });
+
+      child.on("exit", (code) => {
+        clearTimeout(killTimer);
+        if (code !== 0 && code !== null) {
+          reject(new Error(`Subprocess exited with code ${code}`));
+        }
+      });
+
+      // Send work payload to child
+      child.send({
+        type: "run",
+        scenarios,
+        timeoutMs: this.config.timeoutMs,
+      });
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -344,15 +464,38 @@ export class SandboxServer {
 
 /**
  * Read the full body of an incoming HTTP request as a string.
+ *
+ * @param maxBytes - Maximum allowed body size. The stream is destroyed if
+ *   the payload exceeds this limit, protecting against memory exhaustion.
  */
-function readBody(req: IncomingMessage): Promise<string> {
+function readBody(req: IncomingMessage, maxBytes: number = 1_048_576): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    let received = 0;
+
+    req.on("data", (chunk: Buffer) => {
+      received += chunk.length;
+      if (received > maxBytes) {
+        req.destroy();
+        reject(new Error(`Request body exceeds maximum size of ${maxBytes} bytes`));
+        return;
+      }
+      chunks.push(chunk);
+    });
+
     req.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
     req.on("error", reject);
   });
 }
+
+// ---------------------------------------------------------------------------
+// Subprocess message types
+// ---------------------------------------------------------------------------
+
+/** Messages sent from the scan worker subprocess back to the server. */
+export type ScanWorkerMessage =
+  | { type: "result"; report: ScanReport }
+  | { type: "error"; message: string };
 
 // ---------------------------------------------------------------------------
 // CLI entry point (when run as aastf-server)

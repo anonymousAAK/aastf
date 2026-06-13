@@ -6,9 +6,12 @@ Serves scan results as an interactive HTML dashboard using only stdlib
 
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import logging
+import os
+import secrets
 import threading
 import webbrowser
 from datetime import datetime, timezone
@@ -120,13 +123,26 @@ def _category_stats(report: ScanReport) -> dict[str, dict[str, int]]:
 
 
 class WebUIServer:
-    """Local HTTP server that serves scan results as an interactive dashboard."""
+    """Local HTTP server that serves scan results as an interactive dashboard.
+
+    .. warning:: Development only
+
+        This server uses Python's stdlib ``http.server`` module, which is
+        **not suitable for production use**. It is single-threaded, has no
+        TLS support, and lacks hardened request handling.
+
+        For production deployments, serve the dashboard behind a proper ASGI
+        server such as **uvicorn** or **gunicorn** and place it behind a
+        reverse proxy (e.g. nginx, Caddy, or a cloud load balancer) that
+        provides TLS termination, rate limiting, and access control.
+    """
 
     def __init__(self, config: WebUIConfig) -> None:
         self.config = config
         self._report: ScanReport | None = None
         self._server: HTTPServer | None = None
         self._thread: threading.Thread | None = None
+        self._csrf_token: str = secrets.token_hex(32)
 
     def load_report(self, report: ScanReport) -> None:
         """Load a scan report for serving."""
@@ -544,6 +560,12 @@ svg {{ width:100%; height:500px; display:block; margin:0 auto; }}
 
     def start(self) -> None:
         """Start HTTP server (blocking)."""
+        if self.config.host != "127.0.0.1":
+            logger.warning(
+                "Web UI binding to %s — stdlib http.server is NOT suitable for "
+                "public-facing deployments. Use a reverse proxy for production.",
+                self.config.host,
+            )
         handler = partial(APIHandler, server_ref=self)
         self._server = HTTPServer((self.config.host, self.config.port), handler)
         url = f"http://{self.config.host}:{self.config.port}"
@@ -554,6 +576,12 @@ svg {{ width:100%; height:500px; display:block; margin:0 auto; }}
 
     def start_background(self) -> None:
         """Start in a daemon thread."""
+        if self.config.host != "127.0.0.1":
+            logger.warning(
+                "Web UI binding to %s — stdlib http.server is NOT suitable for "
+                "public-facing deployments. Use a reverse proxy for production.",
+                self.config.host,
+            )
         handler = partial(APIHandler, server_ref=self)
         self._server = HTTPServer((self.config.host, self.config.port), handler)
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
@@ -748,10 +776,20 @@ class APIHandler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         logger.debug(format, *args)
 
+    def _send_security_headers(self) -> None:
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
+            "img-src 'self'; font-src 'none'; connect-src 'self'",
+        )
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+
     def _send_html(self, content: str, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
+        self._send_security_headers()
         self.end_headers()
         self.wfile.write(content.encode("utf-8"))
 
@@ -760,6 +798,7 @@ class APIHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Cache-Control", "no-cache")
+        self._send_security_headers()
         self.end_headers()
         self.wfile.write(body.encode("utf-8"))
 

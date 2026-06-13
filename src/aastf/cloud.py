@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import re
 import sys
+import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
@@ -216,10 +219,19 @@ class TicketSync(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+_TOKEN_RE = re.compile(r"^[A-Za-z0-9\-]{32,}$")
+
+
+_AUDIT_LOG_MAX_SIZE = 10_000
+_AUTH_RATE_LIMIT_MAX = 5
+_AUTH_RATE_LIMIT_WINDOW = 60  # seconds
+
+
 class CloudPlatform:
     """In-memory cloud platform facade (production would use a database)."""
 
     def __init__(self) -> None:
+        self._lock = threading.Lock()
         self._workspaces: dict[str, Workspace] = {}
         self._audit_logs: dict[str, list[AuditLogEntry]] = {}
         self._member_roles: dict[str, dict[str, RBACRole]] = {}
@@ -227,6 +239,49 @@ class CloudPlatform:
         self._ticket_syncs: dict[str, list[TicketSync]] = {}
         self._sso_configs: dict[str, SSOConfig] = {}
         self._policy = RBACPolicy()
+        self._authenticated: bool = False
+        self._token: str | None = None
+        self._auth_attempts: dict[str, list[float]] = {}  # token_prefix -> timestamps
+
+    # -- authentication ------------------------------------------------------
+
+    def authenticate(self, token: str) -> bool:
+        """Validate and store an API token.
+
+        A valid token is non-empty, at least 32 characters, and contains
+        only alphanumeric characters and hyphens.
+
+        Returns ``True`` on success; ``False`` (and stays unauthenticated)
+        on failure.  Raises ``PermissionError`` if rate-limited (max 5
+        attempts per minute per token prefix).
+        """
+        with self._lock:
+            prefix = token[:8] if isinstance(token, str) and len(token) >= 8 else "__short"
+            now = time.monotonic()
+            attempts = self._auth_attempts.setdefault(prefix, [])
+            cutoff = now - _AUTH_RATE_LIMIT_WINDOW
+            self._auth_attempts[prefix] = [t for t in attempts if t > cutoff]
+            if len(self._auth_attempts[prefix]) >= _AUTH_RATE_LIMIT_MAX:
+                raise PermissionError(
+                    "Rate limit exceeded: too many authentication attempts. "
+                    "Try again later."
+                )
+            self._auth_attempts[prefix].append(now)
+
+            if not isinstance(token, str) or not _TOKEN_RE.match(token):
+                self._authenticated = False
+                self._token = None
+                return False
+            self._authenticated = True
+            self._token = token
+            return True
+
+    def _require_auth(self) -> None:
+        """Raise ``PermissionError`` if the platform has not been authenticated."""
+        if not self._authenticated:
+            raise PermissionError(
+                "CloudPlatform: not authenticated. Call authenticate() first."
+            )
 
     # -- workspace -----------------------------------------------------------
 
@@ -236,12 +291,14 @@ class CloudPlatform:
         tier: PricingTier = PricingTier.FREE,
         owner: str = "admin",
     ) -> Workspace:
+        self._require_auth()
         ws = Workspace(name=name, tier=tier, owner=owner, members=[owner])
-        self._workspaces[ws.id] = ws
-        self._audit_logs[ws.id] = []
-        self._member_roles[ws.id] = {owner: RBACRole.OWNER}
-        self._ci_integrations[ws.id] = []
-        self._ticket_syncs[ws.id] = []
+        with self._lock:
+            self._workspaces[ws.id] = ws
+            self._audit_logs[ws.id] = []
+            self._member_roles[ws.id] = {owner: RBACRole.OWNER}
+            self._ci_integrations[ws.id] = []
+            self._ticket_syncs[ws.id] = []
         self.log_audit(
             ws,
             AuditLogEntry(
@@ -253,7 +310,8 @@ class CloudPlatform:
         return ws
 
     def get_workspace(self, workspace_id: str) -> Workspace | None:
-        return self._workspaces.get(workspace_id)
+        with self._lock:
+            return self._workspaces.get(workspace_id)
 
     # -- members -------------------------------------------------------------
 
@@ -263,15 +321,17 @@ class CloudPlatform:
         user: str,
         role: RBACRole = RBACRole.MEMBER,
     ) -> None:
+        self._require_auth()
         limits = PLAN_LIMITS[workspace.tier]
-        if len(workspace.members) >= limits.team_members:
-            raise ValueError(
-                f"Workspace '{workspace.name}' has reached the member limit "
-                f"({limits.team_members}) for the {workspace.tier} plan.",
-            )
-        if user not in workspace.members:
-            workspace.members.append(user)
-        self._member_roles.setdefault(workspace.id, {})[user] = role
+        with self._lock:
+            if len(workspace.members) >= limits.team_members:
+                raise ValueError(
+                    f"Workspace '{workspace.name}' has reached the member limit "
+                    f"({limits.team_members}) for the {workspace.tier} plan.",
+                )
+            if user not in workspace.members:
+                workspace.members.append(user)
+            self._member_roles.setdefault(workspace.id, {})[user] = role
         self.log_audit(
             workspace,
             AuditLogEntry(
@@ -285,7 +345,8 @@ class CloudPlatform:
     def get_member_role(
         self, workspace: Workspace, user: str
     ) -> RBACRole | None:
-        return self._member_roles.get(workspace.id, {}).get(user)
+        with self._lock:
+            return self._member_roles.get(workspace.id, {}).get(user)
 
     def has_permission(
         self, workspace: Workspace, user: str, permission: Permission
@@ -303,45 +364,60 @@ class CloudPlatform:
         return workspace.scan_count < limits.scans_per_month
 
     def increment_scan(self, workspace: Workspace) -> None:
+        self._require_auth()
         workspace.scan_count += 1
 
     # -- audit ---------------------------------------------------------------
 
     def log_audit(self, workspace: Workspace, entry: AuditLogEntry) -> None:
-        self._audit_logs.setdefault(workspace.id, []).append(entry)
+        with self._lock:
+            logs = self._audit_logs.setdefault(workspace.id, [])
+            logs.append(entry)
+            if len(logs) > _AUDIT_LOG_MAX_SIZE:
+                self._audit_logs[workspace.id] = logs[-_AUDIT_LOG_MAX_SIZE:]
 
     def get_audit_log(
         self, workspace: Workspace, limit: int = 50
     ) -> list[AuditLogEntry]:
-        logs = self._audit_logs.get(workspace.id, [])
-        return logs[-limit:]
+        with self._lock:
+            logs = self._audit_logs.get(workspace.id, [])
+            return logs[-limit:]
 
     # -- CI ------------------------------------------------------------------
 
     def add_ci_integration(
         self, workspace: Workspace, ci: CIIntegration
     ) -> None:
-        self._ci_integrations.setdefault(workspace.id, []).append(ci)
+        self._require_auth()
+        with self._lock:
+            self._ci_integrations.setdefault(workspace.id, []).append(ci)
 
     def get_ci_integrations(
         self, workspace: Workspace
     ) -> list[CIIntegration]:
-        return list(self._ci_integrations.get(workspace.id, []))
+        with self._lock:
+            return list(self._ci_integrations.get(workspace.id, []))
 
     # -- ticket sync ---------------------------------------------------------
 
     def add_ticket_sync(
         self, workspace: Workspace, sync: TicketSync
     ) -> None:
-        self._ticket_syncs.setdefault(workspace.id, []).append(sync)
+        self._require_auth()
+        with self._lock:
+            self._ticket_syncs.setdefault(workspace.id, []).append(sync)
 
     def get_ticket_syncs(self, workspace: Workspace) -> list[TicketSync]:
-        return list(self._ticket_syncs.get(workspace.id, []))
+        with self._lock:
+            return list(self._ticket_syncs.get(workspace.id, []))
 
     # -- SSO -----------------------------------------------------------------
 
     def set_sso(self, workspace: Workspace, sso: SSOConfig) -> None:
-        self._sso_configs[workspace.id] = sso
+        self._require_auth()
+        with self._lock:
+            self._sso_configs[workspace.id] = sso
 
     def get_sso(self, workspace: Workspace) -> SSOConfig | None:
-        return self._sso_configs.get(workspace.id)
+        with self._lock:
+            return self._sso_configs.get(workspace.id)
