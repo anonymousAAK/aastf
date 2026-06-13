@@ -290,10 +290,54 @@ They signal output sanitization obligations under Article 15, not Article 9 risk
 
 ---
 
+## AASTF Enterprise
+
+AASTF is free and open-source under MIT. **AASTF Enterprise** adds the capabilities large organizations need to operationalize agent security at scale.
+
+### What Enterprise adds
+
+| Capability | What it does |
+|------------|-------------|
+| **Auto-Remediation** | Generates framework-specific fixes (LangGraph, CrewAI, PydanticAI) for every finding — system prompt hardening, tool allow/deny lists, input sanitization, memory fencing, network policies. Apply as dry-run diff, patch, or git commit. |
+| **Regression Verification** | Re-runs failing scenarios after fixes are applied. Reports `fix_verified`, `fix_failed`, or `fix_broke_something` — the closed loop no other tool has. |
+| **Runtime Guardrails** | Deployable input/output/tool/memory/agent guards that intercept and block attacks in production. Config-driven YAML policies. |
+| **Compliance Reporting** | SOC 2 (Trust Service Criteria mapping), ISO 27001 (Annex A controls + SoA), EU AI Act (Art. 50 declarations, DPIA, conformity assessment), CycloneDX SBOM with VEX status. |
+| **Cryptographic Audit Trail** | SHA-256 hash-chained entries with tamper detection. Export to JSON/CSV for auditors. |
+| **Team Management & RBAC** | JWT + API key auth, SSO (SAML 2.0 / OIDC), four built-in roles (Owner/Admin/Member/Viewer) plus custom roles. |
+| **Production Dashboard** | FastAPI dashboard with scan history, trends, team management, remediation workflow, and compliance report downloads. |
+| **SLA Monitoring** | Policy-based breach detection (max critical findings, max risk score) with Slack, Teams, and webhook alerting. |
+| **Cloud Deployment** | Docker, Kubernetes (Deployment + Service + Ingress), and Terraform (AWS ECS Fargate) templates. |
+
+### Open-source vs Enterprise
+
+| Feature | Open Source (MIT) | Enterprise |
+|---------|:-----------------:|:----------:|
+| 130+ OWASP ASI attack scenarios | Yes | Yes |
+| 9 framework adapters | Yes | Yes |
+| SARIF / JSON / HTML reports | Yes | Yes |
+| EU AI Act readiness scoring | Yes | Yes |
+| CVSS risk scoring | Yes | Yes |
+| CI/CD integration | Yes | Yes |
+| Auto-remediation engine | — | Yes |
+| Regression verification loop | — | Yes |
+| Runtime guardrails | — | Yes |
+| SOC 2 / ISO 27001 / SBOM | — | Yes |
+| Cryptographic audit trail | — | Yes |
+| SSO + RBAC + API keys | — | Yes |
+| Production dashboard | — | Yes |
+| SLA monitoring + alerting | — | Yes |
+| Cloud deployment templates | — | Yes |
+| Priority support | — | Yes |
+
+Contact **enterprise@aastf.dev** for licensing.
+
+---
+
 ## Architecture
 
 ```
-Layer 5: Platform   [Public Benchmark + Enterprise Cloud — coming]
+Layer 6: Enterprise  Auto-Remediation . Guardrails . Compliance . Dashboard
+Layer 5: Platform    Public Benchmark + Cloud
 Layer 4: Reporting   JSON . SARIF . HTML . Compliance
 Layer 3: Sandbox     FastAPI Mock Backend . Real HTTP Calls
 Layer 2: Scenarios   YAML Registry . 130+ OWASP ASI Attack Scenarios
