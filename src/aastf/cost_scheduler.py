@@ -143,6 +143,8 @@ class CostTracker:
 class TestPrioritizer:
     """Ranks scenarios by expected information value using historical results."""
 
+    __test__ = False  # tell pytest this is not a test class to collect
+
     def __init__(self, history: list[TestResult] | None = None) -> None:
         self._history = history or []
         # Pre-compute per-scenario stats
