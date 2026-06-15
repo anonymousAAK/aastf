@@ -320,7 +320,7 @@ class BenchmarkRunner:
             runner = Runner(fc)
             try:
                 result = await runner._run_one(
-                    harness=await self._build_harness(runner, model, framework),
+                    backend=await self._build_harness(runner, model, framework),
                     scenario=scenario,
                 )
                 verdict = result.verdict.value
