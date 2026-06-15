@@ -1,7 +1,9 @@
 """Cloud platform models — workspaces, teams, RBAC, SSO, CI, ticket sync.
 
-> **Status: Experimental** — this surface is under active development and
-> not yet production-ready. Models and APIs here may change without notice.
+> **Status: Stable models — no hosted backend in the open-source package.** The
+> workspace / team / RBAC / SSO / CI / ticket-sync Pydantic models are stable and
+> validated, but the OSS distribution ships no hosted control plane behind them;
+> they describe the schema used by the commercial cloud offering.
 """
 
 from __future__ import annotations

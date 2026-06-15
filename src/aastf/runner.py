@@ -13,7 +13,6 @@ Flow:
 from __future__ import annotations
 
 import asyncio
-import importlib
 import logging
 import traceback
 from collections.abc import Callable
@@ -23,7 +22,7 @@ from typing import Any
 
 from . import __version__
 from .cache import ResponseCache
-from .exceptions import AdapterNotFoundError
+from .harness.factory import build_harness, load_agent_factory
 from .models.config import FrameworkConfig
 from .models.result import (
     VULNERABLE_VERDICTS,
@@ -35,6 +34,7 @@ from .models.result import (
 )
 from .models.scenario import ASICategory, AttackScenario
 from .models.trace import AgentTrace
+from .sandbox.isolation import build_execution_backend
 from .sandbox.server import SandboxServer
 from .scenarios.evaluators import get_evaluator_for
 from .scenarios.registry import ScenarioRegistry
@@ -82,8 +82,9 @@ class Runner:
 
         try:
             harness = self._build_harness(sandbox)
+            backend = build_execution_backend(self._config, harness, sandbox)
             for scenario in scenarios:
-                result = await self._run_one(harness, scenario)
+                result = await self._run_one(backend, scenario)
                 self._accumulate(report, result)
         finally:
             await sandbox.stop()
@@ -136,68 +137,22 @@ class Runner:
 
     def _load_agent_factory(self):  # type: ignore[return]
         """Import and return the agent factory callable from dotted path."""
-        agent_module_path = self._config.agent_factory
-        if ":" not in agent_module_path:
-            raise ValueError(
-                f"agent_factory must be 'module.path:callable', got: {agent_module_path!r}"
-            )
-        module_path, _, attr = agent_module_path.rpartition(":")
-        try:
-            module = importlib.import_module(module_path)
-        except ModuleNotFoundError as e:
-            raise AdapterNotFoundError(f"Cannot import agent module {module_path!r}: {e}") from e
-        if not hasattr(module, attr):
-            raise AdapterNotFoundError(f"Module {module_path!r} has no attribute {attr!r}")
-        return getattr(module, attr)
+        return load_agent_factory(self._config.agent_factory)
 
     def _build_harness(self, sandbox: SandboxServer):  # type: ignore[return]
-        factory = self._load_agent_factory()
-        adapter = self._config.adapter
-
-        if adapter == "langgraph":
-            from .harness.adapters.langgraph import LangGraphHarness
-
-            return LangGraphHarness(
-                factory,
-                sandbox,
-                timeout=self._config.timeout_seconds,
-                max_iterations=self._config.max_iterations,
-            )
-        elif adapter == "crewai":
-            from .harness.adapters.crewai import CrewAIHarness
-
-            return CrewAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
-        elif adapter == "openai_agents":
-            from .harness.adapters.openai_agents import OpenAIAgentsHarness
-
-            return OpenAIAgentsHarness(factory, sandbox, timeout=self._config.timeout_seconds)
-        elif adapter == "pydantic_ai":
-            from .harness.adapters.pydantic_ai import PydanticAIHarness
-
-            return PydanticAIHarness(factory, sandbox, timeout=self._config.timeout_seconds)
-        elif adapter == "generic":
-            from .harness.adapters.generic import GenericHarness
-
-            return GenericHarness(factory, sandbox, timeout=self._config.timeout_seconds)
-        elif adapter == "mcp":
-            from .harness.adapters.mcp import MCPHarness
-
-            return MCPHarness(factory, sandbox, timeout=self._config.timeout_seconds)
-        elif adapter == "google_adk":
-            from .harness.adapters.google_adk import GoogleADKHarness
-
-            return GoogleADKHarness(factory, sandbox, timeout=self._config.timeout_seconds)
-        elif adapter == "ms_agent":
-            from .harness.adapters.ms_agent import MSAgentHarness
-
-            return MSAgentHarness(factory, sandbox, timeout=self._config.timeout_seconds)
-        raise AdapterNotFoundError(
-            f"Unknown adapter: {adapter!r}. "
-            "Supported: langgraph, crewai, openai_agents, pydantic_ai, generic, "
-            "mcp, google_adk, ms_agent"
+        # Adapter dispatch lives in harness.factory so the isolation worker can
+        # rebuild the identical harness out-of-process. Adapters supported:
+        # langgraph, crewai, openai_agents, pydantic_ai, generic, mcp,
+        # google_adk, ms_agent.
+        return build_harness(
+            self._config.adapter,
+            self._load_agent_factory(),
+            sandbox,
+            timeout=self._config.timeout_seconds,
+            max_iterations=self._config.max_iterations,
         )
 
-    async def _run_one(self, harness: Any, scenario: AttackScenario) -> TestResult:
+    async def _run_one(self, backend: Any, scenario: AttackScenario) -> TestResult:
         t0 = datetime.now(timezone.utc)
 
         # Check cache first
@@ -211,7 +166,7 @@ class Runner:
 
         try:
             trace = await asyncio.wait_for(
-                harness.run_scenario(scenario),
+                backend.run_scenario(scenario),
                 timeout=self._config.timeout_seconds or _SCENARIO_TIMEOUT,
             )
         except TimeoutError:

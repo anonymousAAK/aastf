@@ -1,7 +1,8 @@
 """PPO-based RL training loop for attack policy refinement.
 
-> **Status: Experimental** — this surface is under active development and
-> not yet production-ready. Models and APIs here may change without notice.
+> **Status: Experimental (research surface).** The pure-Python PPO loop is
+> functional and tested, but reward weights, the policy serialization format, and
+> the training API may change between minor releases.
 
 Implements Proximal Policy Optimization (pure Python, no external RL
 libraries) to evolve attack strategies per ASI category.  The reward

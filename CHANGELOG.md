@@ -5,6 +5,144 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [2.1.0] — 2026-06-15
+
+### Added
+
+- **Execution isolation** (`sandbox/isolation.py`, `sandbox/_worker.py`) — the
+  agent-under-test can now run out-of-process via `--isolation subprocess`
+  (child process per scenario) or `--isolation container` (Docker, reached over
+  `host.docker.internal`). The default `inprocess` mode is unchanged. Both
+  isolated modes reach the in-process sandbox over loopback; detection is
+  unaffected because it scores the returned trace.
+- **OTLP/HTTP export** (`otel.py`) — `OTelExporter.export_otlp()` builds an
+  OTLP/HTTP JSON payload and can optionally POST it to a collector endpoint
+  using only the standard library (no hard `requests` dependency).
+
+### Changed
+
+- Adapter dispatch extracted to `harness/factory.py` (`build_harness`,
+  `load_agent_factory`) so the runner and the isolation worker build identical
+  harnesses; `Runner._build_harness` now delegates to it.
+- Sandbox server docstring and README clarify that the tool server isolates
+  side effects but not the agent process itself — use `--isolation` for
+  untrusted agents.
+
+---
+
+## [2.0.0] — 2026-05-29
+
+Major release consolidating the platform, deployment, and developer-tooling
+surfaces on top of the v1.x scanning core.
+
+### Added
+
+- **Cloud platform** (`cloud.py`, `cloud_runner.py`) — hosted scan orchestration
+  and remote run execution.
+- **Web UI** (`web_ui.py`) — interactive HTML dashboard for scan results
+  (stdlib-only; local/dev use).
+- **VS Code extension** (`packages/aastf-vscode/`) — in-editor scenario runs and
+  result surfacing.
+- **Static analysis** (`static_analysis.py`) and **threat modeling**
+  (`threat_model.py`) for pre-runtime agent inspection.
+
+### Changed
+
+- **Production hardening** — security headers, thread-safety fixes, request
+  timeouts, and signal handling across the server surfaces.
+- PyPI Development Status promoted to **5 - Production/Stable**.
+- Capability claims reconciled with reality; experimental surfaces clearly marked.
+
+---
+
+## [1.2.0] — 2026-05-29
+
+### Added
+
+- **PPO attack refinement** — reinforcement-learning-driven attack tuning.
+- **Benchmark leaderboard** (`leaderboard.py`) and **cloud runner**
+  (`cloud_runner.py`) for reproducible comparative runs.
+
+---
+
+## [1.1.0] — 2026-05-29
+
+### Changed
+
+- Incremental correctness and hardening fixes on top of v1.0.0.
+
+---
+
+## [1.0.0] — 2026-05-29
+
+### Added
+
+- **Adaptive scenario generation** and scenario **converters**.
+- **AI-VSS** vulnerability scoring (`ai_vss.py`).
+- **Mutation engine** (`mutation.py`) and **cost-aware scheduling**
+  (`cost_scheduler.py`).
+
+---
+
+## [0.10.0] — 2026-05-29
+
+### Added
+
+- **OpenTelemetry exporter** (`otel.py`), **alerting** (`alerting.py`), and
+  **drift alerts** (`drift_alerts.py`).
+- **Steerability** evaluation (`steerability.py`).
+- **TypeScript SDK** beta (`packages/aastf-js/`).
+
+---
+
+## [0.9.0] — 2026-05-27
+
+### Added
+
+- **Fault injection** (`fault_injection.py`), **blast-radius** analysis
+  (`blast_radius.py`), **MITRE ATT&CK** mapping (`mitre.py`), and **chaos
+  testing** (`chaos.py`).
+- 16 new scenarios.
+
+---
+
+## [0.8.0] — 2026-05-27
+
+### Added
+
+- **Multi-agent topology** support with A2A / MAS scenarios and orchestrators.
+- TypeScript SDK scaffold.
+
+---
+
+## [0.7.0] — 2026-05-27
+
+### Added
+
+- **Continuous mode**, **drift detection**, **event stream**, **replay**, and
+  **coverage** reporting, plus the initial benchmark harness.
+
+---
+
+## [0.6.0] — 2026-05-22
+
+### Added
+
+- **Compliance evidence packs** spanning three frameworks.
+- Response caching.
+
+---
+
+## [0.5.0] — 2026-05-22
+
+### Added
+
+- **MCP (Model Context Protocol) security testing** — 25 dedicated scenarios
+  across tool poisoning, parameter manipulation, and related attack classes.
+- 100+ total scenarios, Docker packaging, and compliance mapping.
+
+---
+
 ## [0.4.1] — 2026-05-20
 
 ### Changed

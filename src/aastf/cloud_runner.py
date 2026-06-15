@@ -1,7 +1,9 @@
 """Cloud runner — containerised AASTF execution on Kubernetes.
 
-> **Status: Experimental** — this surface is under active development and
-> not yet production-ready. Models and APIs here may change without notice.
+> **Status: Stable manifest generation — no remote execution in the open-source
+> package.** This module deterministically generates containerised-run config and
+> Kubernetes manifests (validated and tested). The OSS distribution generates the
+> manifests; it does not execute remote runs — that is the hosted runner's role.
 """
 
 from __future__ import annotations

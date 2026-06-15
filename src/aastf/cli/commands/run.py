@@ -59,6 +59,20 @@ def run(
         help="Dotted path to agent factory: 'myapp.agent:create_agent'",
     ),
     adapter: str = typer.Option("langgraph", "--adapter", "-a", help="Framework adapter"),
+    isolation: str = typer.Option(
+        "inprocess",
+        "--isolation",
+        help=(
+            "Where the agent-under-test runs: 'inprocess' (default, fast, no "
+            "isolation), 'subprocess' (child process per scenario), or "
+            "'container' (Docker; needs --container-image)."
+        ),
+    ),
+    container_image: str = typer.Option(
+        None,
+        "--container-image",
+        help="Docker image for --isolation container (must have aastf installed).",
+    ),
     category: list[str] = typer.Option(
         [],
         "--category",
@@ -150,10 +164,19 @@ def run(
             output_dir=output_dir,
             fail_on_severity=fail_on,
             timeout_seconds=timeout,
+            isolation=isolation,  # type: ignore[arg-type]
+            container_image=container_image,
         )
     except Exception as exc:
         console.print(f"[bold red]Configuration error:[/bold red] {exc}")
         raise typer.Exit(2) from None
+
+    if isolation == "container" and not container_image:
+        console.print(
+            "[bold red]Configuration error:[/bold red] --isolation container "
+            "requires --container-image"
+        )
+        raise typer.Exit(2)
 
     if dry_run:
         _dry_run(config)

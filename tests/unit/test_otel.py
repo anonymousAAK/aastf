@@ -303,6 +303,48 @@ class TestExportOtlp:
         scope_spans = payload["resourceSpans"][0]["scopeSpans"][0]["spans"]
         assert scope_spans == []
 
+    def test_no_post_by_default(self, monkeypatch) -> None:
+        import urllib.request
+        called = {"n": 0}
+
+        def _fail(*a, **k):
+            called["n"] += 1
+            raise AssertionError("should not POST when send=False")
+
+        monkeypatch.setattr(urllib.request, "urlopen", _fail)
+        OTelExporter.export_otlp([], "http://localhost:4318")
+        assert called["n"] == 0
+
+    def test_send_posts_payload(self, monkeypatch) -> None:
+        import json
+        import urllib.request
+
+        captured = {}
+
+        class _FakeResp:
+            status = 200
+            def __enter__(self):
+                return self
+            def __exit__(self, *a):
+                return False
+
+        def _fake_urlopen(req, timeout=None):
+            captured["url"] = req.full_url
+            captured["method"] = req.get_method()
+            captured["body"] = json.loads(req.data.decode("utf-8"))
+            captured["content_type"] = req.headers.get("Content-type")
+            return _FakeResp()
+
+        monkeypatch.setattr(urllib.request, "urlopen", _fake_urlopen)
+        spans = OTelExporter.traces_to_spans([_make_trace()])
+        payload = OTelExporter.export_otlp(
+            spans, "http://collector:4318/v1/traces", send=True,
+        )
+        assert captured["url"] == "http://collector:4318/v1/traces"
+        assert captured["method"] == "POST"
+        assert captured["content_type"] == "application/json"
+        assert captured["body"] == payload
+
 
 # ---------------------------------------------------------------------------
 # OTelExporter — prometheus_metrics

@@ -1,7 +1,10 @@
 """Web UI backend server for ``aastf view``.
 
-> **Status: Experimental** — this surface is under active development and
-> not yet production-ready. Models and APIs here may change without notice.
+> **Status: Stable surface — local/dev use only.** The dashboard renders scan
+> results with the standard-library HTTP server: it is single-threaded, has no
+> TLS, and is not hardened for untrusted input. Run it locally; do not expose it
+> to production traffic. The rendered HTML/JSON output format is stable and
+> covered by tests.
 
 Serves scan results as an interactive HTML dashboard using only stdlib
 (http.server, json, pathlib) — no Flask / FastAPI dependency.

@@ -93,7 +93,7 @@ jobs:
 - uses: anonymousAAK/aastf/.github/actions/aastf-scan@master
   with:
     agent-module: 'myapp.agent:create_agent'
-    aastf-version: '0.4.1'
+    aastf-version: '2.0.0'
 ```
 
 ### Pass extra arguments

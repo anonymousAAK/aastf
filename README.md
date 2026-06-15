@@ -8,7 +8,7 @@
 [![CI](https://github.com/anonymousAAK/aastf/actions/workflows/ci.yml/badge.svg)](https://github.com/anonymousAAK/aastf/actions)
 [![PyPI](https://img.shields.io/pypi/v/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
 [![Downloads](https://img.shields.io/pypi/dm/aastf?cacheBust=1)](https://pypi.org/project/aastf/)
-[![Tests](https://img.shields.io/badge/tests-2976%20passed-brightgreen)](TESTING.md)
+[![Tests](https://img.shields.io/badge/tests-2985%20passed-brightgreen)](TESTING.md)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20296480.svg)](https://doi.org/10.5281/zenodo.20296480)
@@ -162,6 +162,27 @@ graph.astream_events() ------> 3. Instruments execution via LangGraph callback b
 
 The sandbox replaces real tool backends. Your agent calls `http://127.0.0.1:{port}/tools/web_search` — real HTTP, real requests — but the sandbox logs everything and returns scenario-configured responses. No real files are deleted. No real emails are sent.
 
+### Execution isolation
+
+The sandbox only intercepts the agent's *tool calls*. By default the
+agent-under-test itself runs **in the runner's own process** (`--isolation
+inprocess`) — fast and dependency-free, but it shares the runner's memory and
+host, so it offers no protection against a hostile agent. For untrusted agents,
+opt up:
+
+```bash
+aastf run myapp.agent:create_agent --isolation subprocess        # child process per scenario
+aastf run myapp.agent:create_agent --isolation container \
+    --container-image myorg/aastf-agent:latest                   # Docker per scenario
+```
+
+Both isolated modes run the agent out-of-process and reach the in-process
+sandbox over loopback (`container` via `host.docker.internal`); detection is
+unchanged because it scores the returned trace. The container image must have
+`aastf` installed and be able to import your agent factory from the mounted
+working directory. For maximum assurance, also run AASTF itself inside your own
+VM/container.
+
 ---
 
 ## GitHub Actions Integration
@@ -254,7 +275,7 @@ aastf run myapp.agent:create_agent --scenario-dir ./my-scenarios
 
 ## MCP Security Testing
 
-AASTF v0.5.0 introduces comprehensive MCP (Model Context Protocol) security testing with 25 dedicated scenarios covering:
+AASTF provides comprehensive MCP (Model Context Protocol) security testing with 25 dedicated scenarios covering:
 
 | Category | Scenarios | Attacks Tested |
 |----------|-----------|----------------|
@@ -329,7 +350,7 @@ AASTF is free and open-source under MIT. **AASTF Enterprise** adds the capabilit
 | Cloud deployment templates | — | Yes |
 | Priority support | — | Yes |
 
-
+For enterprise licensing, open an issue on the [GitHub repository](https://github.com/anonymousAAK/aastf).
 
 ---
 
@@ -362,7 +383,7 @@ depth per framework.
 
 ## Test Results
 
-**2976 tests collected · 2 skipped · lint clean** (measured via
+**2979 tests collected · 2 skipped · lint clean** (measured via
 `pytest tests/ --collect-only -q` and a full `pytest` run; the collected count is
 verified by `tests/adversarial/test_h_docs.py`, which fails CI if this README
 drifts from the actual collected count).

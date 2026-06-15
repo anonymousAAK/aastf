@@ -11,6 +11,6 @@ and tests them against the OWASP ASI Top 10 threat taxonomy.
 AASTF exists because that number needs to go to zero.
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "AASTF Contributors"
 __license__ = "MIT"

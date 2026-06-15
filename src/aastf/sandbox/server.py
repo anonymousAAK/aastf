@@ -4,6 +4,12 @@ In-process FastAPI sandbox server.
 Agents make REAL HTTP requests to http://127.0.0.1:{port}/tools/{tool_name}.
 No mock-patching of the agent's HTTP client. This catches what mocking misses:
 retry storms (ASI08), malformed JSON handling, timeout behavior.
+
+Scope: this server intercepts the agent's *tool calls* and never performs real
+side effects. It does NOT isolate the agent-under-test itself — by default the
+agent runs in the runner's own process. To contain an untrusted agent, run it
+out-of-process via :mod:`aastf.sandbox.isolation` (``--isolation
+subprocess|container``); the agent still reaches this server over loopback.
 """
 
 from __future__ import annotations

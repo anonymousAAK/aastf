@@ -1,7 +1,7 @@
 """Leaderboard — ranking engine, submission handling, and public results tables.
 
-> **Status: Experimental** — this surface is under active development and
-> not yet production-ready. Models and APIs here may change without notice.
+> **Status: Stable.** Ranking, submission handling, and CSV/JSON result tables
+> are deterministic and covered by tests; the public results schema is stable.
 """
 
 from __future__ import annotations

@@ -148,12 +148,19 @@ class OTelExporter:
     # ----------------------------------------------------------------- export
 
     @staticmethod
-    def export_otlp(spans: list[AastfSpan], endpoint: str) -> dict[str, Any]:
-        """Build an OTLP JSON export payload.
+    def export_otlp(
+        spans: list[AastfSpan],
+        endpoint: str,
+        *,
+        send: bool = False,
+        timeout: float = 5.0,
+    ) -> dict[str, Any]:
+        """Build an OTLP/HTTP JSON export payload, optionally POSTing it.
 
-        In production this would POST to *endpoint*.  The current
-        implementation builds and returns the payload dict so callers can
-        inspect it or send it themselves (avoids hard ``requests`` dep).
+        The payload dict is always returned so callers can inspect it. When
+        ``send=True`` the payload is also POSTed to *endpoint* as
+        ``application/json`` using the standard library (no hard ``requests``
+        dependency). Network/HTTP errors are raised to the caller.
         """
         resource_spans = {
             "resourceSpans": [
@@ -175,9 +182,27 @@ class OTelExporter:
                 },
             ],
         }
-        # Stub: in a real implementation we would POST to endpoint here.
-        _ = endpoint  # consumed
+        if send:
+            OTelExporter._post_otlp(endpoint, resource_spans, timeout)
         return resource_spans
+
+    @staticmethod
+    def _post_otlp(
+        endpoint: str, payload: dict[str, Any], timeout: float = 5.0,
+    ) -> int:
+        """POST an OTLP/HTTP JSON *payload* to *endpoint*; return HTTP status."""
+        import json
+        import urllib.request
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            endpoint,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            return getattr(resp, "status", 200)
 
     # ----------------------------------------------------------- prometheus
 

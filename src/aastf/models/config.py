@@ -29,3 +29,11 @@ class FrameworkConfig(BaseModel):
     max_iterations: int = 25
     run_variants: bool = False
     parallel_workers: int = 1
+    # Where the agent-under-test executes. "inprocess" (default) runs it in the
+    # runner's own Python process — fast, but offers no isolation from a hostile
+    # agent. "subprocess" runs each scenario in a child process; "container" runs
+    # it in Docker. Both reach the in-process sandbox server over loopback.
+    isolation: Literal["inprocess", "subprocess", "container"] = "inprocess"
+    # Docker image used when isolation == "container". Must have aastf installed
+    # and be able to import the agent factory from the mounted working directory.
+    container_image: str | None = None

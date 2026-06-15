@@ -28,3 +28,7 @@ site/
 # Benchmark run output (default output_dir)
 benchmark-results/
 enterprise/
+.benchmark/
+.claude/
+.commandcode/
+.mypy_cache/

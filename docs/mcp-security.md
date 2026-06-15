@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Model Context Protocol (MCP) enables AI agents to interact with external tools and resources through a standardized protocol. While powerful, MCP introduces several attack surfaces that AASTF v0.5.0 systematically tests.
+The Model Context Protocol (MCP) enables AI agents to interact with external tools and resources through a standardized protocol. While powerful, MCP introduces several attack surfaces that AASTF systematically tests.
 
 ## Attack Taxonomy
 

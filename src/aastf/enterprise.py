@@ -1,7 +1,9 @@
 """Enterprise features — conformity packs, on-prem config, scenario authoring.
 
-> **Status: Experimental** — this surface is under active development and
-> not yet production-ready. Models and APIs here may change without notice.
+> **Status: Stable scaffolding — full features in the commercial add-on.** The
+> conformity-pack, on-prem-config, and scenario-authoring models here are stable
+> schemas covered by tests; the complete enterprise implementation lives in the
+> separate commercial package.
 """
 
 from __future__ import annotations
