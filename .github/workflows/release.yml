@@ -98,6 +98,12 @@ jobs:
           name: dist-signed
           path: dist/
 
+      - name: Strip non-distribution files
+        # The sign job bundles Sigstore *.sigstore.json signatures into this
+        # artifact. twine would treat them as distributions and abort with
+        # "InvalidDistribution", so keep only the wheel and sdist for upload.
+        run: find dist -type f ! -name '*.whl' ! -name '*.tar.gz' -delete
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
