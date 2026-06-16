@@ -324,7 +324,7 @@ AASTF is free and open-source under MIT. **AASTF Enterprise** adds the capabilit
 | **Runtime Guardrails** | Deployable input/output/tool/memory/agent guards that intercept and block attacks in production. Config-driven YAML policies. |
 | **Compliance Reporting** | SOC 2 (Trust Service Criteria mapping), ISO 27001 (Annex A controls + SoA), EU AI Act (Art. 50 declarations, DPIA, conformity assessment), CycloneDX SBOM with VEX status. |
 | **Cryptographic Audit Trail** | SHA-256 hash-chained entries with tamper detection. Export to JSON/CSV for auditors. |
-| **Team Management & RBAC** | JWT + API key auth, SSO (SAML 2.0 / OIDC), four built-in roles (Owner/Admin/Member/Viewer) plus custom roles. |
+| **Team Management & RBAC** | JWT + API key auth, SSO via OIDC (OpenID Connect) with CSRF-protected callbacks; SAML 2.0 on the roadmap. Four built-in roles (Owner/Admin/Member/Viewer) plus custom roles. |
 | **Production Dashboard** | FastAPI dashboard with scan history, trends, team management, remediation workflow, and compliance report downloads. |
 | **SLA Monitoring** | Policy-based breach detection (max critical findings, max risk score) with Slack, Teams, and webhook alerting. |
 | **Cloud Deployment** | Docker, Kubernetes (Deployment + Service + Ingress), and Terraform (AWS ECS Fargate) templates. |
