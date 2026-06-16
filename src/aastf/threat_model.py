@@ -202,9 +202,10 @@ _AASTF_THREATS: list[ThreatEntry] = [
         likelihood="high",
         impact="high",
         mitigations=[
-            "Automatic secret redaction in trace serialization",
-            "Configurable redaction patterns (regex-based)",
-            "Never persist raw HTTP headers in default mode",
+            "Automatic secret redaction in JSON report serialization "
+            "(aastf.redaction.redact_text, applied by JSONReporter)",
+            "Credential-pattern + sensitive-key redaction for nested data "
+            "(aastf.redaction.redact_secrets)",
         ],
         status="mitigated",
     ),
